@@ -46,23 +46,25 @@ int main() {
         }
     }
 
-    // Set our block size and threads per thread block
-    int threads = 16;
-    int blocks = (N + threads - 1) / threads;
-
-    // Set up kernel launch parameters, so we can create grid/blocks
-    dim3 dimBlocks(threads, threads); // TODO: Read book for how to calculate
-    dim3 dimGrid(blocks, blocks);
-
     // Allocate memory on the device
     cudaMalloc(&deviceMatrix, row * col * sizeof(int));
+
+    // Set our block size and threads per thread block
+    const int THREADS = 32;
+
+    // Set up kernel launch parameters, so we can create grid/blocks
+    dim3 numThreadsPerBlock(THREADS, THREADS);
+    dim3 numBlocks( (WIDTH + numThreadsPerBlock.x - 1)/numThreadsPerBlock.x,
+                    (HEIGHT + numThreadsPerBlock.y - 1)/numThreadsPerBlock.y);
+
+    
 
     // Copy data from host to device
     cudaMemcpy(deviceMatrix, hostMatrix, row * col * sizeof(int), cudaMemcpyHostToDevice);
 
     // Perform CUDA computations on deviceMatrix
     // Launch our kernel
-    matrixMult<<<dimGrid, dimBlocks>>>(/*pic in*/, /*pic out*/, HEIGHT, WIDTH);
+    colorToGrayScaleConversion<<<numBlocks, numThreadsPerBlock>>>(/*pic in*/, /*pic out*/, HEIGHT, WIDTH);
 
     // Free memory
     cudaFree(deviceMatrix);
