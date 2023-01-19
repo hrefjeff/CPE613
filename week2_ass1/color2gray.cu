@@ -39,6 +39,13 @@ int main() {
     // Allocate memory on the host
     cudaMallocHost(&hostMatrix, row * col * sizeof(int));
 
+    // Fill the host matrix with data
+    for (int i = 0; i < row; i++) {
+        for (int j = 0; j < col; j++) {
+            hostMatrix[i * col + j] = /* TODO: GET VALUES FROM RGB MATRIX */;
+        }
+    }
+
     // Set our block size and threads per thread block
     int threads = 16;
     int blocks = (N + threads - 1) / threads;
@@ -46,13 +53,6 @@ int main() {
     // Set up kernel launch parameters, so we can create grid/blocks
     dim3 dimBlocks(threads, threads); // TODO: Read book for how to calculate
     dim3 dimGrid(blocks, blocks);
-
-    // Fill the host matrix with data
-    for (int i = 0; i < row; i++) {
-        for (int j = 0; j < col; j++) {
-            hostMatrix[i * col + j] = /* TODO: GET VALUES FROM RGB MATRIX */;
-        }
-    }
 
     // Allocate memory on the device
     cudaMalloc(&deviceMatrix, row * col * sizeof(int));
@@ -62,7 +62,7 @@ int main() {
 
     // Perform CUDA computations on deviceMatrix
     // Launch our kernel
-    matrixMult<<<dimGrid, dimBlocks>>>(a, b, c, HEIGHT, WIDTH);
+    matrixMult<<<dimGrid, dimBlocks>>>(/*pic in*/, /*pic out*/, HEIGHT, WIDTH);
 
     // Free memory
     cudaFree(deviceMatrix);
