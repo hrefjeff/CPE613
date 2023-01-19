@@ -26,14 +26,15 @@ int main() {
     // Set our problem size
     const int WIDTH = 810;
     const int HEIGHT = 456;
+    const int TOTAL_SIZE = WIDTH * HEIGHT;
     unsigned char *red_h, *green_h, *blue_h, *gray_h;
     unsigned char *red_d, *green_d, *blue_d, *gray_d;
     
     // Allocate memory on the host
-    cudaMallocHost((void**)&red_h, HEIGHT * WIDTH * sizeof(int));
-    cudaMallocHost((void**)&green_h, HEIGHT * WIDTH * sizeof(int));
-    cudaMallocHost((void**)&blue_h, HEIGHT * WIDTH * sizeof(int));
-    cudaMallocHost((void**)&gray_h, HEIGHT * WIDTH * sizeof(int));
+    cudaMallocHost((void**)&red_h, TOTAL_SIZE);
+    cudaMallocHost((void**)&green_h, TOTAL_SIZE);
+    cudaMallocHost((void**)&blue_h, TOTAL_SIZE);
+    cudaMallocHost((void**)&gray_h, TOTAL_SIZE);
 
     // Fill the host matrix with data
     FILE *red_file = fopen("reds.txt", "r");
@@ -58,9 +59,9 @@ int main() {
 
     // Allocate memory on the device
     cudaMalloc(&red_d, WIDTH * HEIGHT * sizeof(int));
-    cudaMalloc(&green_d, HEIGHT * WIDTH * sizeof(int));
-    cudaMalloc(&blue_d, HEIGHT * WIDTH * sizeof(int));
-    cudaMalloc(&gray_d, HEIGHT * WIDTH * sizeof(int));
+    cudaMalloc(&green_d, TOTAL_SIZE);
+    cudaMalloc(&blue_d, TOTAL_SIZE);
+    cudaMalloc(&gray_d, TOTAL_SIZE);
 
     // Set our block size and threads per thread block
     const int THREADS = 32;
@@ -70,12 +71,10 @@ int main() {
     dim3 numBlocks( (WIDTH + numThreadsPerBlock.x - 1)/numThreadsPerBlock.x,
                     (HEIGHT + numThreadsPerBlock.y - 1)/numThreadsPerBlock.y);
 
-    
-
     // Copy data from host to device
-    cudaMemcpy(red_d, red_h, HEIGHT * WIDTH * sizeof(int), cudaMemcpyHostToDevice);
-    cudaMemcpy(green_d, green_h, HEIGHT * WIDTH * sizeof(int), cudaMemcpyHostToDevice);
-    cudaMemcpy(blue_d, blue_h, HEIGHT * WIDTH * sizeof(int), cudaMemcpyHostToDevice);
+    cudaMemcpy(red_d, red_h, TOTAL_SIZE, cudaMemcpyHostToDevice);
+    cudaMemcpy(green_d, green_h, TOTAL_SIZE, cudaMemcpyHostToDevice);
+    cudaMemcpy(blue_d, blue_h, TOTAL_SIZE, cudaMemcpyHostToDevice);
 
     // Perform CUDA computations on deviceMatrix
     // Launch our kernel
