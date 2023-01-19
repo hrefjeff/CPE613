@@ -1,1 +1,4 @@
-alabama super computer password: groovin1
+
+alabama super computer creds:
+uname uahclsc0002
+pw    groovin1
