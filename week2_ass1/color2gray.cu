@@ -5,25 +5,19 @@
 using namespace std;
 
 __global__ 
-void colorToGrayScaleConversion(unsigned char *Pout, unsigned char *Pin, int width, int height) {
+void rgb2gray_kernel(unsigned char* red,unsigned char* green, unsigned char* blue, 
+                    unsigned char* gray, int width, int height) {
 
-    int col = blockIdx.x * blockDim.x + threadIdx.x;
     int row = blockIdx.y * blockDim.y + threadIdx.y;
+    int col = blockIdx.x * blockDim.x + threadIdx.x;
 
+    // Boundary check
     if (col < width && row < height) {
         // Get 1D offset for the grayscale image
-        int grayOffset = row*width + col;
+        int pixelIndex = row*width + col;
 
-        // One can think of the RGB image having CHANNEL
-        // times more columns than the gray scale image
-        int rgbOffset = grayOffset*3; // 3 channels
-        unsigned char r = Pin[rgbOffset    ];
-        unsigned char g = Pin[rgbOffset + 1];
-        unsigned char b = Pin[rgbOffset + 2];
-
-        // Perform the rescaling and store it
-        // We multiply by floating point constants
-        Pout[grayOffset] = 0.21f*r + 0.71f*g+ 0.07f*b;
+        // Convert the pixel
+        gray[pixelIndex] = red[pixelIndex]*3/10 + green[pixelIndex]*6/10 + blue[pixelIndex]*1/10;
     }
 }
 
@@ -32,22 +26,41 @@ int main() {
     // Set our problem size
     const int WIDTH = 810;
     const int HEIGHT = 456;
-    int *hostMatrix;
-    int *deviceMatrix;
-    // TODO: Find out what Pin and Pout are
+    unsigned char *red_h, *green_h, *blue_h, *gray_h;
+    unsigned char *red_d, *green_d, *blue_d, *gray_d;
     
     // Allocate memory on the host
-    cudaMallocHost(&hostMatrix, row * col * sizeof(int));
+    cudaMallocHost((void**)&red_h, HEIGHT * WIDTH * sizeof(int));
+    cudaMallocHost((void**)&green_h, HEIGHT * WIDTH * sizeof(int));
+    cudaMallocHost((void**)&blue_h, HEIGHT * WIDTH * sizeof(int));
+    cudaMallocHost((void**)&gray_h, HEIGHT * WIDTH * sizeof(int));
 
     // Fill the host matrix with data
-    for (int i = 0; i < row; i++) {
-        for (int j = 0; j < col; j++) {
-            hostMatrix[i * col + j] = /* TODO: GET VALUES FROM RGB MATRIX */;
+    FILE *red_file = fopen("reds.txt", "r");
+    FILE *green_file = fopen("greens.txt", "r");
+    FILE *blue_file = fopen("blues.txt", "r");
+    if (red_file == NULL || green_file == NULL || blue_file == NULL) {
+        printf("Error opening file\n");
+        return 1;
+    }
+    
+    for (int i = 0; i < HEIGHT; i++) {
+        for (int j = 0; j < WIDTH; j++) {
+            fscanf(red_file, "%d", &red_h[i+j]);
+            fscanf(green_file, "%d", &green_h[i+j]);
+            fscanf(blue_file, "%d", &blue_h[i+j]);
         }
     }
 
+    fclose(red_file);
+    fclose(green_file);
+    fclose(blue_file);
+
     // Allocate memory on the device
-    cudaMalloc(&deviceMatrix, row * col * sizeof(int));
+    cudaMalloc(&red_d, WIDTH * HEIGHT * sizeof(int));
+    cudaMalloc(&green_d, HEIGHT * WIDTH * sizeof(int));
+    cudaMalloc(&blue_d, HEIGHT * WIDTH * sizeof(int));
+    cudaMalloc(&gray_d, HEIGHT * WIDTH * sizeof(int));
 
     // Set our block size and threads per thread block
     const int THREADS = 32;
@@ -60,15 +73,23 @@ int main() {
     
 
     // Copy data from host to device
-    cudaMemcpy(deviceMatrix, hostMatrix, row * col * sizeof(int), cudaMemcpyHostToDevice);
+    cudaMemcpy(red_d, red_h, HEIGHT * WIDTH * sizeof(int), cudaMemcpyHostToDevice);
+    cudaMemcpy(green_d, green_h, HEIGHT * WIDTH * sizeof(int), cudaMemcpyHostToDevice);
+    cudaMemcpy(blue_d, blue_h, HEIGHT * WIDTH * sizeof(int), cudaMemcpyHostToDevice);
 
     // Perform CUDA computations on deviceMatrix
     // Launch our kernel
-    colorToGrayScaleConversion<<<numBlocks, numThreadsPerBlock>>>(/*pic in*/, /*pic out*/, HEIGHT, WIDTH);
+    rgb2gray_kernel<<<numBlocks, numThreadsPerBlock>>>(red_d, green_d, blue_d, gray_d, HEIGHT, WIDTH);
 
     // Free memory
-    cudaFree(deviceMatrix);
-    cudaFreeHost(hostMatrix);
+    cudaFree(red_d);
+    cudaFree(green_d);
+    cudaFree(blue_d);
+    cudaFree(gray_d);
+    cudaFreeHost(red_h);
+    cudaFreeHost(green_h);
+    cudaFreeHost(blue_h);
+    cudaFreeHost(gray_h);
 
     return 0;
 }
