@@ -11,7 +11,6 @@ void colorToGrayScaleConversion(unsigned char *Pout, unsigned char *Pin, int wid
     int row = blockIdx.y * blockDim.y + threadIdx.y;
 
     if (col < width && row < height) {
-
         // Get 1D offset for the grayscale image
         int grayOffset = row*width + col;
 
@@ -31,34 +30,43 @@ void colorToGrayScaleConversion(unsigned char *Pout, unsigned char *Pin, int wid
 int main() {
 
     // Set our problem size
-    int N = 1 << 10;
-    size_t bytes = N * N * sizeof(int);
-
-    // Allocate memory for our matrices
-    int *a, *b, *c;
-    cudaMalloc(&a, bytes);
-    cudaMalloc(&b, bytes);
-    cudaMalloc(&c, bytes);
-
-    init_matrix(a, N);
-    init_matrix(b, N);
+    const int WIDTH = 810;
+    const int HEIGHT = 456;
+    int *hostMatrix;
+    int *deviceMatrix;
+    // TODO: Find out what Pin and Pout are
+    
+    // Allocate memory on the host
+    cudaMallocHost(&hostMatrix, row * col * sizeof(int));
 
     // Set our block size and threads per thread block
     int threads = 16;
     int blocks = (N + threads - 1) / threads;
 
-    // Set up kernel launch parameters, so we can create 3d grid
-    dim3 dimBlocks(threads, threads); // same as THREADS.x = 16
+    // Set up kernel launch parameters, so we can create grid/blocks
+    dim3 dimBlocks(threads, threads); // TODO: Read book for how to calculate
     dim3 dimGrid(blocks, blocks);
 
+    // Fill the host matrix with data
+    for (int i = 0; i < row; i++) {
+        for (int j = 0; j < col; j++) {
+            hostMatrix[i * col + j] = /* TODO: GET VALUES FROM RGB MATRIX */;
+        }
+    }
+
+    // Allocate memory on the device
+    cudaMalloc(&deviceMatrix, row * col * sizeof(int));
+
+    // Copy data from host to device
+    cudaMemcpy(deviceMatrix, hostMatrix, row * col * sizeof(int), cudaMemcpyHostToDevice);
+
+    // Perform CUDA computations on deviceMatrix
     // Launch our kernel
-    matrixMult<<<dimGrid, dimBlocks>>>(a, b, c, N);
-    cudaDeviceSynchronize(); // cudaMemcpy
+    matrixMult<<<dimGrid, dimBlocks>>>(a, b, c, HEIGHT, WIDTH);
 
-    // Verify result by computing on CPU and comparing it to GPU
-    verify_result(a, b, c, N);
-
-    cout << "Program completed successfully." << endl;
+    // Free memory
+    cudaFree(deviceMatrix);
+    cudaFreeHost(hostMatrix);
 
     return 0;
 }
