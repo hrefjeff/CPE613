@@ -37,9 +37,9 @@ int main() {
     cudaMallocHost((void**)&gray_h, TOTAL_SIZE);
 
     // Fill the host matrix with data
-    FILE *red_file = fopen("reds.txt", "r");
-    FILE *green_file = fopen("greens.txt", "r");
-    FILE *blue_file = fopen("blues.txt", "r");
+    FILE *red_file = fopen("/home/uahclsc0002/CPE613/week2_ass1/reds.txt", "r");
+    FILE *green_file = fopen("/home/uahclsc0002/CPE613/week2_ass1/greens.txt", "r");
+    FILE *blue_file = fopen("/home/uahclsc0002/CPE613/week2_ass1/blues.txt", "r");
     if (red_file == NULL || green_file == NULL || blue_file == NULL) {
         printf("Error opening file\n");
         return 1;

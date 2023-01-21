@@ -1,0 +1,25 @@
+setting dmc scratch directory
+ 
+============================================================
+=====         Summary of your GPU job                  =====
+============================================================
+  The script file is: c2g
+  The time limit is 01:00:00 HH:MM:SS.
+  The target directory is: /home/uahclsc0002/CPE613/week2_ass1
+  The working directory is:  /scratch-local/uahclsc0002.c2gGPU.918239
+  The memory limit is: 1gb
+  The job will start running after: 2023-01-19T13:12:45
+  Job Name: c2gGPU
+  Virtual queue: gpu
+  QOS: --qos=gpu
+  Constraints: 
+  Using  1  cores on master node  dmc204
+  Node list:  dmc204
+  Nodes:  dmc204
+  Command typed:
+/apps/scripts/run_gpu c2g     
+  Queue submit command:
+sbatch --qos=gpu -J c2gGPU --begin=2023-01-19T13:12:45 --requeue --mail-user=ja0081@uah.edu -o c2gGPU.o918239 -t 01:00:00 --gres=gpu:1 -N 1-1 -n 1 --mem-per-cpu=1000mb  
+ 
+Assigning GPU 2 to this job.
+Error opening file
