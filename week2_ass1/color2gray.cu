@@ -1,7 +1,8 @@
 #include <cstdlib>
-#include <cassert>
 #include <iostream>
+#include <opencv2/opencv.hpp>
 
+using namespace cv;
 using namespace std;
 
 __global__ 
@@ -14,54 +15,54 @@ void rgb2gray_kernel(unsigned char* red,unsigned char* green, unsigned char* blu
     // Boundary check
     if (col < width && row < height) {
         // Get 1D offset for the grayscale image
-        int pixelIndex = row*width + col;
+        int pixelIndex = (row*width) + col;
 
         // Convert the pixel
-        gray[pixelIndex] = red[pixelIndex]*3/10 + green[pixelIndex]*6/10 + blue[pixelIndex]*1/10;
+        gray[pixelIndex] = (red[pixelIndex]*3.0/10.0) + (green[pixelIndex]*6.0/10.0) + (blue[pixelIndex]*1.0/10.0);
     }
 }
 
 int main() {
 
+    Mat img = imread("thethreeamigos.jpeg", IMREAD_COLOR);
+    imshow("Goat!", img);
+
     // Set our problem size
     const int WIDTH = 810;
     const int HEIGHT = 456;
     const int TOTAL_SIZE = WIDTH * HEIGHT;
-    unsigned char *red_h, *green_h, *blue_h, *gray_h;
-    unsigned char *red_d, *green_d, *blue_d, *gray_d;
-    
-    // Allocate memory on the host
-    cudaMallocHost((void**)&red_h, TOTAL_SIZE);
-    cudaMallocHost((void**)&green_h, TOTAL_SIZE);
-    cudaMallocHost((void**)&blue_h, TOTAL_SIZE);
-    cudaMallocHost((void**)&gray_h, TOTAL_SIZE);
 
-    // Fill the host matrix with data
-    FILE *red_file = fopen("/home/uahclsc0002/CPE613/week2_ass1/reds.txt", "r");
-    FILE *green_file = fopen("/home/uahclsc0002/CPE613/week2_ass1/greens.txt", "r");
-    FILE *blue_file = fopen("/home/uahclsc0002/CPE613/week2_ass1/blues.txt", "r");
-    if (red_file == NULL || green_file == NULL || blue_file == NULL) {
-        printf("Error opening file\n");
-        return 1;
-    }
-    
-    for (int i = 0; i < HEIGHT; i++) {
-        for (int j = 0; j < WIDTH; j++) {
-            fscanf(red_file, "%d", &red_h[i+j]);
-            fscanf(green_file, "%d", &green_h[i+j]);
-            fscanf(blue_file, "%d", &blue_h[i+j]);
-        }
+    // Allocate memory in host RAM
+    unsigned char *h_red, *h_green, *h_blue, *h_gray;
+    cudaMallocHost((void **) &h_red, sizeof(char)*TOTAL_SIZE);
+    cudaMallocHost((void **) &h_green, sizeof(char)*TOTAL_SIZE);
+    cudaMallocHost((void **) &h_blue, sizeof(char)*TOTAL_SIZE);
+    cudaMallocHost((void **) &h_gray, sizeof(char)*TOTAL_SIZE);
+
+    // Fill the host matrices with data
+    int red = 0;
+    int green = 0;
+    int blue = 0;
+    Mat greyMat(img.rows, img.cols, CV_8UC1, Scalar(0));
+    for (int rowIdx = 0; rowIdx < img.rows; ++rowIdx) {
+        for (int colIdx = 0; colIdx < img.cols; ++colIdx) {
+        auto & vec = img.at<cv::Vec<uchar, 3>>(rowIdx, colIdx);
+        &h_blue[rowIdx+colIdx] = vec[0]; 
+        &h_green[rowIdx+colIdx] = vec[1]; 
+        &h_red[rowIdx+colIdx] = vec[2];
     }
 
-    fclose(red_file);
-    fclose(green_file);
-    fclose(blue_file);
+    // Allocate memory space on the device 
+    unsigned char *d_red, *d_green, *d_blue, *d_gray;
+    cudaMalloc((void **) &d_red, sizeof(char)*TOTAL_SIZE);
+    cudaMalloc((void **) &d_green, sizeof(char)*TOTAL_SIZE);
+    cudaMalloc((void **) &d_blue, sizeof(char)*TOTAL_SIZE);
+    cudaMalloc((void **) &d_gray, sizeof(char)*TOTAL_SIZE);
 
-    // Allocate memory on the device
-    cudaMalloc(&red_d, WIDTH * HEIGHT * sizeof(int));
-    cudaMalloc(&green_d, TOTAL_SIZE);
-    cudaMalloc(&blue_d, TOTAL_SIZE);
-    cudaMalloc(&gray_d, TOTAL_SIZE);
+    // Copy matrices from host to device memory
+    cudaMemcpy(d_red, h_red, sizeof(int)*m*n, cudaMemcpyHostToDevice);
+    cudaMemcpy(d_green, h_green, sizeof(int)*n*k, cudaMemcpyHostToDevice);
+    cudaMemcpy(d_blue, h_blue, sizeof(int)*n*k, cudaMemcpyHostToDevice);
 
     // Set our block size and threads per thread block
     const int THREADS = 32;
@@ -71,24 +72,24 @@ int main() {
     dim3 numBlocks( (WIDTH + numThreadsPerBlock.x - 1)/numThreadsPerBlock.x,
                     (HEIGHT + numThreadsPerBlock.y - 1)/numThreadsPerBlock.y);
 
-    // Copy data from host to device
-    cudaMemcpy(red_d, red_h, TOTAL_SIZE, cudaMemcpyHostToDevice);
-    cudaMemcpy(green_d, green_h, TOTAL_SIZE, cudaMemcpyHostToDevice);
-    cudaMemcpy(blue_d, blue_h, TOTAL_SIZE, cudaMemcpyHostToDevice);
+    // Perform CUDA computations on deviceMatrix, Launch Kernel
+    rgb2gray_kernel<<<numBlocks, numThreadsPerBlock>>>(d_red, d_green, d_blue, d_gray, HEIGHT, WIDTH);
 
-    // Perform CUDA computations on deviceMatrix
-    // Launch our kernel
-    rgb2gray_kernel<<<numBlocks, numThreadsPerBlock>>>(red_d, green_d, blue_d, gray_d, HEIGHT, WIDTH);
+    // Copy result from device to host
+    cudaMemcpy(d_gray, h_gray, TOTAL_SIZE, cudaMemcpyDeviceToHost);
+
+    // Write img to gray.jpg
+    imwrite("grayboiz.jpg", h_gray);
 
     // Free memory
-    cudaFree(red_d);
-    cudaFree(green_d);
-    cudaFree(blue_d);
-    cudaFree(gray_d);
-    cudaFreeHost(red_h);
-    cudaFreeHost(green_h);
-    cudaFreeHost(blue_h);
-    cudaFreeHost(gray_h);
+    cudaFree(d_red);
+    cudaFree(d_green);
+    cudaFree(d_blue);
+    cudaFree(d_gray);
+    cudaFreeHost(h_red);
+    cudaFreeHost(h_green);
+    cudaFreeHost(h_blue);
+    cudaFreeHost(h_gray);
 
     return 0;
 }
