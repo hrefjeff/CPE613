@@ -1,4 +1,3 @@
-#include <cstdlib>
 #include <iostream>
 #include <opencv2/opencv.hpp>
 
@@ -25,7 +24,7 @@ void rgb2gray_kernel(unsigned char* red,unsigned char* green, unsigned char* blu
 int main() {
 
     Mat img = imread("thethreeamigos.jpeg", IMREAD_COLOR);
-    imshow("Goat!", img);
+    // imshow("Goat!", img);
 
     // Set our problem size
     const int WIDTH = 810;
@@ -40,16 +39,14 @@ int main() {
     cudaMallocHost((void **) &h_gray, sizeof(char)*TOTAL_SIZE);
 
     // Fill the host matrices with data
-    int red = 0;
-    int green = 0;
-    int blue = 0;
     Mat greyMat(img.rows, img.cols, CV_8UC1, Scalar(0));
     for (int rowIdx = 0; rowIdx < img.rows; ++rowIdx) {
         for (int colIdx = 0; colIdx < img.cols; ++colIdx) {
-        auto & vec = img.at<cv::Vec<uchar, 3>>(rowIdx, colIdx);
-        &h_blue[rowIdx+colIdx] = vec[0]; 
-        &h_green[rowIdx+colIdx] = vec[1]; 
-        &h_red[rowIdx+colIdx] = vec[2];
+            auto & vec = img.at<cv::Vec<uchar, 3>>(rowIdx, colIdx);
+            h_blue[rowIdx+colIdx] = vec[0]; 
+            h_green[rowIdx+colIdx] = vec[1]; 
+            h_red[rowIdx+colIdx] = vec[2];
+        }
     }
 
     // Allocate memory space on the device 
@@ -60,9 +57,9 @@ int main() {
     cudaMalloc((void **) &d_gray, sizeof(char)*TOTAL_SIZE);
 
     // Copy matrices from host to device memory
-    cudaMemcpy(d_red, h_red, sizeof(int)*m*n, cudaMemcpyHostToDevice);
-    cudaMemcpy(d_green, h_green, sizeof(int)*n*k, cudaMemcpyHostToDevice);
-    cudaMemcpy(d_blue, h_blue, sizeof(int)*n*k, cudaMemcpyHostToDevice);
+    cudaMemcpy(d_red, h_red, sizeof(char)*TOTAL_SIZE, cudaMemcpyHostToDevice);
+    cudaMemcpy(d_green, h_green, sizeof(char)*TOTAL_SIZE, cudaMemcpyHostToDevice);
+    cudaMemcpy(d_blue, h_blue, sizeof(char)*TOTAL_SIZE, cudaMemcpyHostToDevice);
 
     // Set our block size and threads per thread block
     const int THREADS = 32;
@@ -78,8 +75,14 @@ int main() {
     // Copy result from device to host
     cudaMemcpy(d_gray, h_gray, TOTAL_SIZE, cudaMemcpyDeviceToHost);
 
+    // Copy result from gray matrix into matlab OpenCV input array format
+    for (int rowIdx = 0; rowIdx < HEIGHT; ++rowIdx) {
+    for (int colIdx = 0; colIdx < WIDTH; ++colIdx)
+      greyMat.at<uchar>(rowIdx, colIdx) = h_gray[rowIdx + colIdx];
+    }
+
     // Write img to gray.jpg
-    imwrite("grayboiz.jpg", h_gray);
+    imwrite("grayboiz.jpg", greyMat);
 
     // Free memory
     cudaFree(d_red);
