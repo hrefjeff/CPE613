@@ -1,3 +1,4 @@
+#include <cstdlib>
 #include <iostream>
 #include <opencv2/opencv.hpp>
 
@@ -24,7 +25,7 @@ void rgb2gray_kernel(unsigned char* red,unsigned char* green, unsigned char* blu
 int main() {
 
     Mat img = imread("thethreeamigos.jpeg", IMREAD_COLOR);
-    // imshow("Goat!", img);
+    //imshow("Goat!", img);
 
     // Set our problem size
     const int WIDTH = 810;
@@ -40,8 +41,8 @@ int main() {
 
     // Fill the host matrices with data
     Mat greyMat(img.rows, img.cols, CV_8UC1, Scalar(0));
-    for (int rowIdx = 0; rowIdx < img.rows; ++rowIdx) {
-        for (int colIdx = 0; colIdx < img.cols; ++colIdx) {
+    for (int rowIdx = 0; rowIdx < HEIGHT; ++rowIdx) {
+        for (int colIdx = 0; colIdx < WIDTH; ++colIdx) {
             auto & vec = img.at<cv::Vec<uchar, 3>>(rowIdx, colIdx);
             h_blue[rowIdx+colIdx] = vec[0]; 
             h_green[rowIdx+colIdx] = vec[1]; 
