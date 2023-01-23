@@ -2,14 +2,14 @@
 #include <vector>
 
 // to expose the Fortran code as a C function to our C++ code
-extern "C" void saxpy_ {
+extern "C" void saxpy_ (
   int   * n,
   float * alpha,
   float * x,
   int   * incx,
   float * y,
-  int   * incy,
-};
+  int   * incy
+);
 
 int main () {
 
@@ -30,18 +30,18 @@ int main () {
   }
   
   // call the saxpy, i.e., y <- alpha * x + y
-  saxpy_ {
+  saxpy_ (
     &n, // since the Fortran expects an address
     &alpha,
-    x.delta(), // the pointer to the internal buffer
+    x.data(), // the pointer to the internal buffer
     &incx,
     y.data(),
     &incy
-  };
+  );
   
   // print result, should see the size in each field of the result
   // based on how we set the values of vec{x} vec{y} and alpha
-  for (idx = 0; idx < n; ++idx) {
+  for (int idx = 0; idx < n; ++idx) {
       printf("y[%d] = %20.16f\n", idx, y[idx*incy]);
   }
   
