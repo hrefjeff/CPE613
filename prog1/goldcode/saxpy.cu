@@ -1,7 +1,7 @@
 #include <cmath>
-#inlcude <cstdio>
-#include <stdlib>
-#inlcude <vector>
+#include <cstdio>
+#include <cstdlib>
+#include <vector>
 
 #include <cuda_runtime.h>
 #include <helper_cuda.h>
@@ -53,8 +53,8 @@ int main() {
   // preallocate the memory on the host and device
   std::vector<float> host_x(n * incx, 0.0f);
   std::vector<float> host_y(n * incy, 0.0f);
-  float *dev_x = null;
-  float *dev_y = null;
+  float *dev_x = nullptr;
+  float *dev_y = nullptr;
   int byte_size_x = n * incx * sizeof(float);
   int byte_size_y = n * incy * sizeof(float);
   checkCudaErrors (cudaMalloc(&dev_x, byte_size_x));

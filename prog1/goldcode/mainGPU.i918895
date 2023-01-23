@@ -1,0 +1,19 @@
+ 
+============================================================
+=====     Queued job information at submit time        =====
+============================================================
+  The submitted file is: main
+  The time limit is 01:00:00 HH:MM:SS.
+  The target directory is: /home/uahclsc0002/CPE613/prog1/goldcode
+  The memory limit is: 1gb
+  The job will start running after: 2023-01-23T11:26:48
+  Job Name: mainGPU
+  Virtual queue: gpu
+  QOS: --qos=gpu
+  Constraints: 
+  Command typed:
+/apps/scripts/run_gpu main     
+  Queue submit command:
+sbatch --qos=gpu -J mainGPU --begin=2023-01-23T11:26:48 --requeue --mail-user=ja0081@uah.edu -o mainGPU.o$SLURM_JOB_ID -t 01:00:00 --gres=gpu:ampere:1 -N 1-1 -n 1 --mem-per-cpu=1000mb  
+  Job number: 918895
+ 
