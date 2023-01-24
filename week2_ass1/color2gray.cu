@@ -23,15 +23,15 @@ void rgb2gray_kernel (
         rowIdx += blockDim.y * gridDim.y
     ) {
         for (
-        int colIdx = threadIdx.y + blockIdx.y * blockDim.y;
-        colIdx < width;
-        colIdx += blockDim.x * gridDim.x
+            int colIdx = threadIdx.y + blockIdx.y * blockDim.y;
+            colIdx < width;
+            colIdx += blockDim.x * gridDim.x
         ) {
             int offset = rowIdx * width + colIdx;
-            grey_d[offset] = (unsigned char)(
+            gray_d[offset] = (unsigned char)(
                 (float)red_d[offset] * 3.0 / 10.0 +
                 (float)green_d[offset] * 6.0 / 10.0 +
-                (float)blue_d[offset] * 1.0 / 10.0 +
+                (float)blue_d[offset] * 1.0 / 10.0
             );
         }
     }
