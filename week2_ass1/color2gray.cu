@@ -34,10 +34,10 @@ int main() {
 
     // Allocate memory in host RAM
     unsigned char *h_red, *h_green, *h_blue, *h_gray;
-    cudaMallocHost((void **) &h_red, sizeof(char)*TOTAL_SIZE);
-    cudaMallocHost((void **) &h_green, sizeof(char)*TOTAL_SIZE);
-    cudaMallocHost((void **) &h_blue, sizeof(char)*TOTAL_SIZE);
-    cudaMallocHost((void **) &h_gray, sizeof(char)*TOTAL_SIZE);
+    cudaMallocHost((void **) &h_red, sizeof(unsigned char)*TOTAL_SIZE);
+    cudaMallocHost((void **) &h_green, sizeof(unsigned char)*TOTAL_SIZE);
+    cudaMallocHost((void **) &h_blue, sizeof(unsigned char)*TOTAL_SIZE);
+    cudaMallocHost((void **) &h_gray, sizeof(unsigned char)*TOTAL_SIZE);
 
     // Fill the host matrices with data
     Mat greyMat(img.rows, img.cols, CV_8UC1, Scalar(0));
@@ -52,15 +52,15 @@ int main() {
 
     // Allocate memory space on the device 
     unsigned char *d_red, *d_green, *d_blue, *d_gray;
-    cudaMalloc((void **) &d_red, sizeof(char)*TOTAL_SIZE);
-    cudaMalloc((void **) &d_green, sizeof(char)*TOTAL_SIZE);
-    cudaMalloc((void **) &d_blue, sizeof(char)*TOTAL_SIZE);
-    cudaMalloc((void **) &d_gray, sizeof(char)*TOTAL_SIZE);
+    cudaMalloc((void **) &d_red, sizeof(unsigned char)*TOTAL_SIZE);
+    cudaMalloc((void **) &d_green, sizeof(unsigned char)*TOTAL_SIZE);
+    cudaMalloc((void **) &d_blue, sizeof(unsigned char)*TOTAL_SIZE);
+    cudaMalloc((void **) &d_gray, sizeof(unsigned char)*TOTAL_SIZE);
 
     // Copy matrices from host to device memory
-    cudaMemcpy(d_red, h_red, sizeof(char)*TOTAL_SIZE, cudaMemcpyHostToDevice);
-    cudaMemcpy(d_green, h_green, sizeof(char)*TOTAL_SIZE, cudaMemcpyHostToDevice);
-    cudaMemcpy(d_blue, h_blue, sizeof(char)*TOTAL_SIZE, cudaMemcpyHostToDevice);
+    cudaMemcpy(d_red, h_red, sizeof(unsigned char)*TOTAL_SIZE, cudaMemcpyHostToDevice);
+    cudaMemcpy(d_green, h_green, sizeof(unsigned char)*TOTAL_SIZE, cudaMemcpyHostToDevice);
+    cudaMemcpy(d_blue, h_blue, sizeof(unsigned char)*TOTAL_SIZE, cudaMemcpyHostToDevice);
 
     // Set our block size and threads per thread block
     const int THREADS = 32;
