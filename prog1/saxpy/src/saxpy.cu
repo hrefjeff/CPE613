@@ -7,12 +7,12 @@
 #include <helper_cuda.h>
 
 __global__ void saxpy_kernel (
-  int n,
+  int   n,
   float alpha,
   float *dev_x,
-  int incx,
+  int   incx,
   float *dev_y,
-  int incy
+  int   incy
 ) {
   for (
     int idx = threadIdx.x + blockIdx.x * blockDim.x;
@@ -24,12 +24,12 @@ __global__ void saxpy_kernel (
 }
 
 void saxpy (
-  int n,
+  int   n,
   float alpha,
   float *dev_x,
-  int incx,
+  int   incx,
   float *dev_y,
-  int incy
+  int   incy
 ) {
   int blockSize = 512; // number of thread in a block, we'll tune later
   int gridSize; // number of blocks
@@ -41,6 +41,28 @@ void saxpy (
   saxpy_kernel <<<gridSize, blockSize>>> (n, alpha, dev_x, incx, dev_y, incy);
   
   checkCudaErrors(cudaGetLastError()); // make sure to check errors
+}
+
+double relative_error_12 (
+  int   n,
+  float *y_reference,
+  int   inc_y_reference,
+  float *y_computed,
+  int   inc_y_computed
+) {
+  double difference_norm_squared = 0.0;
+  double reference_norm_squared = 0.0;
+  for (int idx = 0; idx < n; ++idx) {
+    auto & reference_value = y_reference[idx * inc_y_reference];
+    double difference {
+      y_reference[idx * inc_y_reference] -
+      y_computed[idx * inc_y_computed]
+    };
+    difference_norm_squared = difference * difference;
+    reference_norm_squared = reference_value * reference_value;
+  }
+
+  return sqrt ( difference_norm_squared / reference_norm_squared);
 }
 
 int main() {
@@ -91,6 +113,28 @@ int main() {
   for (int idx = 0; idx < n; ++idx) {
     printf("y[%d] = %20.16f\n", idx, host_y[idx*incy]);
   }
+
+  /* ~~~~Comparison testing~~~~ */
+  // copy result down from device 
+  std::vector<float> y_computed (
+    y_reference.size(),
+    0.0f
+  );
+
+  checkCudaErrors (
+    cudaMemcpy (
+
+    )
+  );
+
+  // output relative error
+  printf (
+    "\t- Relative Error (12):         %20.16e\n",
+    relerr
+  );
+
+  if (relerr < 1.0e-7) printf("\t- PASSED\n");
+  else printf("\t-FAILED\n");
   
   return 0;
 }
