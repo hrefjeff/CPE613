@@ -1,4 +1,3 @@
-CSAPP_INC = ./include
 NVCC = nvcc
 NVCCFLAGS = 
 NVCCARCHS =
