@@ -95,5 +95,7 @@ int main() {
     cudaFreeHost(h_blue);
     cudaFreeHost(h_gray);
 
+    printf("Made it to the end!\n");
+
     return 0;
 }
