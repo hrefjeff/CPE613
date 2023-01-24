@@ -44,9 +44,9 @@ int main() {
     for (int rowIdx = 0; rowIdx < HEIGHT; ++rowIdx) {
         for (int colIdx = 0; colIdx < WIDTH; ++colIdx) {
             auto & vec = img.at<cv::Vec<uchar, 3>>(rowIdx, colIdx);
-            h_blue[rowIdx+colIdx] = vec[0]; 
-            h_green[rowIdx+colIdx] = vec[1]; 
-            h_red[rowIdx+colIdx] = vec[2];
+            h_blue[(rowIdx*WIDTH)+colIdx] = vec[0]; 
+            h_green[(rowIdx*WIDTH)+colIdx] = vec[1]; 
+            h_red[(rowIdx*WIDTH)+colIdx] = vec[2];
         }
     }
 
