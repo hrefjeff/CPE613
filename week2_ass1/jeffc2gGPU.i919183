@@ -1,0 +1,19 @@
+ 
+============================================================
+=====     Queued job information at submit time        =====
+============================================================
+  The submitted file is: jeffc2g
+  The time limit is 01:00:00 HH:MM:SS.
+  The target directory is: /home/uahclsc0002/CPE613/week2_ass1
+  The memory limit is: 1gb
+  The job will start running after: 2023-01-24T12:34:46
+  Job Name: jeffc2gGPU
+  Virtual queue: gpu
+  QOS: --qos=gpu
+  Constraints: 
+  Command typed:
+/apps/scripts/run_gpu jeffc2g     
+  Queue submit command:
+sbatch --qos=gpu -J jeffc2gGPU --begin=2023-01-24T12:34:46 --requeue --mail-user=ja0081@uah.edu -o jeffc2gGPU.o$SLURM_JOB_ID -t 01:00:00 --gres=gpu:ampere:1 -N 1-1 -n 1 --mem-per-cpu=1000mb  
+  Job number: 919183
+ 
