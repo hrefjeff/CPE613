@@ -1,26 +1,43 @@
 #include <cstdlib>
 #include <iostream>
 #include <opencv2/opencv.hpp>
+#include <cuda_runtime.h>
+#include <helper_cuda.h>
 
 using namespace cv;
 using namespace std;
 
 __global__ 
-void rgb2gray_kernel(unsigned char* red,unsigned char* green, unsigned char* blue, 
-                    unsigned char* gray, int width, int height) {
+void rgb2gray_kernel (
+    unsigned char* red_d,
+    unsigned char* green_d,
+    unsigned char* blue_d,
+    unsigned char* gray_d,
+    int width,
+    int height
+) {
 
-    int row = blockIdx.y * blockDim.y + threadIdx.y;
-    int col = blockIdx.x * blockDim.x + threadIdx.x;
-
-    // Boundary check
-    if (col < width && row < height) {
-        // Get 1D offset for the grayscale image
-        int pixelIndex = (row*width) + col;
-
-        // Convert the pixel
-        gray[pixelIndex] = (red[pixelIndex]*3.0/10.0) + (green[pixelIndex]*6.0/10.0) + (blue[pixelIndex]*1.0/10.0);
+    for (
+        int rowIdx = threadIdx.y + blockIdx.y * blockDim.y;
+        rowIdx < height;
+        rowIdx += blockDim.y * gridDim.y
+    ) {
+        for (
+        int colIdx = threadIdx.y + blockIdx.y * blockDim.y;
+        colIdx < width;
+        colIdx += blockDim.x * gridDim.x
+        ) {
+            int offset = rowIdx * width + colIdx;
+            grey_d[offset] = (unsigned char)(
+                (float)red_d[offset] * 3.0 / 10.0 +
+                (float)green_d[offset] * 6.0 / 10.0 +
+                (float)blue_d[offset] * 1.0 / 10.0 +
+            );
+        }
     }
+
 }
+
 
 int main() {
 
@@ -63,15 +80,26 @@ int main() {
     cudaMemcpy(d_blue, h_blue, sizeof(unsigned char)*TOTAL_SIZE, cudaMemcpyHostToDevice);
 
     // Set our block size and threads per thread block
-    const int THREADS = 32;
+    const int blockWidth = 16;
 
     // Set up kernel launch parameters, so we can create grid/blocks
-    dim3 numThreadsPerBlock(THREADS, THREADS);
+    dim3 numThreadsPerBlock(blockWidth, blockWidth);
     dim3 numBlocks( (WIDTH + numThreadsPerBlock.x - 1)/numThreadsPerBlock.x,
-                    (HEIGHT + numThreadsPerBlock.y - 1)/numThreadsPerBlock.y);
+                    (HEIGHT + numThreadsPerBlock.y - 1)/numThreadsPerBlock.y
+    );
 
     // Perform CUDA computations on deviceMatrix, Launch Kernel
-    rgb2gray_kernel<<<numBlocks, numThreadsPerBlock>>>(d_red, d_green, d_blue, d_gray, HEIGHT, WIDTH);
+    rgb2gray_kernel<<<
+        numBlocks,
+        numThreadsPerBlock
+    >>>(
+        d_red,
+        d_green,
+        d_blue,
+        d_gray,
+        HEIGHT,
+        WIDTH
+    );
 
     // Copy result from device to host
     cudaMemcpy(d_gray, h_gray, TOTAL_SIZE, cudaMemcpyDeviceToHost);
@@ -79,7 +107,7 @@ int main() {
     // Copy result from gray matrix into matlab OpenCV input array format
     for (int rowIdx = 0; rowIdx < HEIGHT; ++rowIdx) {
     for (int colIdx = 0; colIdx < WIDTH; ++colIdx)
-      greyMat.at<uchar>(rowIdx, colIdx) = h_gray[rowIdx + colIdx];
+      greyMat.at<uchar>(rowIdx, colIdx) = h_gray[(rowIdx*WIDTH)+colIdx];
     }
 
     // Write img to gray.jpg
