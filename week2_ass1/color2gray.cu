@@ -48,11 +48,6 @@ void device_rgb2grayscale (
 ){
     int blockWidth = 16;
 
-    dim3 blockSize(blockWidth, blockWidth);
-
-    // Set our block size and threads per thread block
-    const int blockWidth = 16;
-
     // Set up kernel launch parameters, so we can create grid/blocks
     dim3 numThreadsPerBlock(blockWidth, blockWidth);
     dim3 numBlocks(
