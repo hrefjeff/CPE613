@@ -13,21 +13,21 @@ void rgb2gray_kernel (
     unsigned char* green_d,
     unsigned char* blue_d,
     unsigned char* gray_d,
-    int width,
-    int height
+    int numCols,
+    int numRows
 ) {
 
     for (
         int rowIdx = threadIdx.y + blockIdx.y * blockDim.y;
-        rowIdx < height;
+        rowIdx < numRows;
         rowIdx += blockDim.y * gridDim.y
     ) {
         for (
-            int colIdx = threadIdx.y + blockIdx.y * blockDim.y;
-            colIdx < width;
+            int colIdx = threadIdx.x + blockIdx.x * blockDim.x;
+            colIdx < numCols;
             colIdx += blockDim.x * gridDim.x
         ) {
-            int offset = rowIdx * width + colIdx;
+            int offset = rowIdx * numCols + colIdx;
             gray_d[offset] = (unsigned char)(
                 (float)red_d[offset] * 3.0 / 10.0 +
                 (float)green_d[offset] * 6.0 / 10.0 +
@@ -49,17 +49,17 @@ void device_rgb2grayscale (
     int blockWidth = 16;
 
     // Set up kernel launch parameters, so we can create grid/blocks
-    dim3 numThreadsPerBlock(blockWidth, blockWidth);
-    dim3 numBlocks(
-        (numCols + numThreadsPerBlock.x - 1)/numThreadsPerBlock.x,
-        (numRows + numThreadsPerBlock.y - 1)/numThreadsPerBlock.y
+    dim3 blockSize(blockWidth, blockWidth);
+    dim3 gridSize(
+        (numCols + blockWidth - 1) / blockWidth,
+        (numRows + blockWidth - 1) / blockWidth
     );
 
     // Perform CUDA computations on deviceMatrix, Launch Kernel
     rgb2gray_kernel<<<
-        numBlocks,
-        numThreadsPerBlock
-    >>>(
+        gridSize,
+        blockSize
+    >>> (
         deviceRed,
         deviceGreen,
         deviceBlue,
