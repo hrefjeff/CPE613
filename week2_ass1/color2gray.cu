@@ -102,7 +102,7 @@ int main() {
     unsigned char * deviceGreen = nullptr;
     unsigned char * deviceBlue = nullptr;
     unsigned char * deviceGray = nullptr;
-    size_t byteSize = HEIGHT * WIDTH * sizeof(unsigned char);
+    size_t byteSize = img.cols * img.rows * sizeof(unsigned char);
     checkCudaErrors(cudaMalloc(&deviceRed,byteSize));
     checkCudaErrors(cudaMalloc(&deviceGreen,byteSize));
     checkCudaErrors(cudaMalloc(&deviceBlue,byteSize));
@@ -124,8 +124,8 @@ int main() {
         deviceGreen,
         deviceBlue,
         deviceGray,
-        HEIGHT,
-        WIDTH
+        img.rows,
+        img.cols
     );
 
     // Copy result from device to host
