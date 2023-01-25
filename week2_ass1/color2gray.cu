@@ -38,6 +38,42 @@ void rgb2gray_kernel (
 
 }
 
+void device_rgb2grayscale (
+    unsigned char * deviceRed,
+    unsigned char * deviceGreen,
+    unsigned char * deviceBlue,
+    unsigned char * deviceGray,
+    int numRows,
+    int numCols
+){
+    int blockWidth = 16;
+
+    // Set up kernel launch parameters, so we can create grid/blocks
+    dim3 numThreadsPerBlock(blockWidth, blockWidth);
+    dim3 numBlocks(
+        (numCols + numThreadsPerBlock.x - 1)/numThreadsPerBlock.x,
+        (numRows + numThreadsPerBlock.y - 1)/numThreadsPerBlock.y
+    );
+
+    // Perform CUDA computations on deviceMatrix, Launch Kernel
+    rgb2gray_kernel<<<
+        numBlocks,
+        numThreadsPerBlock
+    >>>(
+        deviceRed,
+        deviceGreen,
+        deviceBlue,
+        deviceGray,
+        numCols,
+        numRows
+    );
+
+    checkCudaErrors(
+        cudaGetLastError()
+    );
+
+}
+
 
 int main() {
 
@@ -50,78 +86,73 @@ int main() {
     const int TOTAL_SIZE = WIDTH * HEIGHT;
 
     // Allocate memory in host RAM
-    unsigned char *h_red, *h_green, *h_blue, *h_gray;
-    cudaMallocHost((void **) &h_red, sizeof(unsigned char)*TOTAL_SIZE);
-    cudaMallocHost((void **) &h_green, sizeof(unsigned char)*TOTAL_SIZE);
-    cudaMallocHost((void **) &h_blue, sizeof(unsigned char)*TOTAL_SIZE);
-    cudaMallocHost((void **) &h_gray, sizeof(unsigned char)*TOTAL_SIZE);
+    std::vector<unsigned char> hostRed(TOTAL_SIZE);
+    std::vector<unsigned char> hostGreen(TOTAL_SIZE);
+    std::vector<unsigned char> hostBlue(TOTAL_SIZE);
+    std::vector<unsigned char> hostGray(TOTAL_SIZE);
 
     // Fill the host matrices with data
     Mat greyMat(img.rows, img.cols, CV_8UC1, Scalar(0));
     for (int rowIdx = 0; rowIdx < HEIGHT; ++rowIdx) {
         for (int colIdx = 0; colIdx < WIDTH; ++colIdx) {
             auto & vec = img.at<cv::Vec<uchar, 3>>(rowIdx, colIdx);
-            h_blue[(rowIdx*WIDTH)+colIdx] = vec[0]; 
-            h_green[(rowIdx*WIDTH)+colIdx] = vec[1]; 
-            h_red[(rowIdx*WIDTH)+colIdx] = vec[2];
+            int offset = rowIdx * WIDTH + colIdx;
+            hostBlue[offset] = vec[0]; 
+            hostGreen[offset] = vec[1]; 
+            hostRed[offset] = vec[2];
         }
     }
 
-    // Allocate memory space on the device 
-    unsigned char *d_red, *d_green, *d_blue, *d_gray;
-    cudaMalloc((void **) &d_red, sizeof(unsigned char)*TOTAL_SIZE);
-    cudaMalloc((void **) &d_green, sizeof(unsigned char)*TOTAL_SIZE);
-    cudaMalloc((void **) &d_blue, sizeof(unsigned char)*TOTAL_SIZE);
-    cudaMalloc((void **) &d_gray, sizeof(unsigned char)*TOTAL_SIZE);
+    // Allocate memory space on the device
+    unsigned char * deviceRed = nullptr;
+    unsigned char * deviceGreen = nullptr;
+    unsigned char * deviceBlue = nullptr;
+    unsigned char * deviceGray = nullptr;
+    size_t byteSize = HEIGHT * WIDTH * sizeof(unsigned char);
+    checkCudaErrors(cudaMalloc(&deviceRed,byteSize));
+    checkCudaErrors(cudaMalloc(&deviceGreen,byteSize));
+    checkCudaErrors(cudaMalloc(&deviceBlue,byteSize));
+    checkCudaErrors(cudaMalloc(&deviceGray,byteSize));
 
-    // Copy matrices from host to device memory
-    cudaMemcpy(d_red, h_red, sizeof(unsigned char)*TOTAL_SIZE, cudaMemcpyHostToDevice);
-    cudaMemcpy(d_green, h_green, sizeof(unsigned char)*TOTAL_SIZE, cudaMemcpyHostToDevice);
-    cudaMemcpy(d_blue, h_blue, sizeof(unsigned char)*TOTAL_SIZE, cudaMemcpyHostToDevice);
-
-    // Set our block size and threads per thread block
-    const int blockWidth = 16;
-
-    // Set up kernel launch parameters, so we can create grid/blocks
-    dim3 numThreadsPerBlock(blockWidth, blockWidth);
-    dim3 numBlocks( (WIDTH + numThreadsPerBlock.x - 1)/numThreadsPerBlock.x,
-                    (HEIGHT + numThreadsPerBlock.y - 1)/numThreadsPerBlock.y
+    // Upload data to device
+    checkCudaErrors(
+        cudaMemcpy (deviceRed, hostRed.data(),byteSize,cudaMemcpyHostToDevice)
+    );
+    checkCudaErrors(
+        cudaMemcpy (deviceGreen, hostGreen.data(),byteSize,cudaMemcpyHostToDevice)
+    );
+    checkCudaErrors(
+        cudaMemcpy (deviceBlue, hostBlue.data(),byteSize,cudaMemcpyHostToDevice)
     );
 
-    // Perform CUDA computations on deviceMatrix, Launch Kernel
-    rgb2gray_kernel<<<
-        numBlocks,
-        numThreadsPerBlock
-    >>>(
-        d_red,
-        d_green,
-        d_blue,
-        d_gray,
+    device_rgb2grayscale (
+        deviceRed,
+        deviceGreen,
+        deviceBlue,
+        deviceGray,
         HEIGHT,
         WIDTH
     );
 
     // Copy result from device to host
-    cudaMemcpy(d_gray, h_gray, TOTAL_SIZE, cudaMemcpyDeviceToHost);
+    checkCudaErrors(
+        cudaMemcpy (hostGray.data(), deviceGray,byteSize,cudaMemcpyDeviceToHost)
+    );
 
     // Copy result from gray matrix into matlab OpenCV input array format
     for (int rowIdx = 0; rowIdx < HEIGHT; ++rowIdx) {
     for (int colIdx = 0; colIdx < WIDTH; ++colIdx)
-      greyMat.at<uchar>(rowIdx, colIdx) = h_gray[(rowIdx*WIDTH)+colIdx];
+      greyMat.at<uchar>(rowIdx, colIdx) = hostGray[(rowIdx*WIDTH)+colIdx];
     }
 
     // Write img to gray.jpg
     imwrite("grayboiz.jpg", greyMat);
 
     // Free memory
-    cudaFree(d_red);
-    cudaFree(d_green);
-    cudaFree(d_blue);
-    cudaFree(d_gray);
-    cudaFreeHost(h_red);
-    cudaFreeHost(h_green);
-    cudaFreeHost(h_blue);
-    cudaFreeHost(h_gray);
+    cudaFree(deviceRed);
+    cudaFree(deviceGreen);
+    cudaFree(deviceBlue);
+    cudaFree(deviceGray);
 
     printf("Made it to the end!\n");
 
