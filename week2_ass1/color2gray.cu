@@ -71,7 +71,6 @@ void device_rgb2grayscale (
     checkCudaErrors(
         cudaGetLastError()
     );
-
 }
 
 
@@ -80,26 +79,21 @@ int main() {
     Mat img = imread("thethreeamigos.jpeg", IMREAD_COLOR);
     //imshow("Goat!", img);
 
-    // Set our problem size
-    const int WIDTH = 810;
-    const int HEIGHT = 456;
-    const int TOTAL_SIZE = WIDTH * HEIGHT;
-
     // Allocate memory in host RAM
-    std::vector<unsigned char> hostRed(TOTAL_SIZE);
-    std::vector<unsigned char> hostGreen(TOTAL_SIZE);
-    std::vector<unsigned char> hostBlue(TOTAL_SIZE);
-    std::vector<unsigned char> hostGray(TOTAL_SIZE);
+    std::vector<unsigned char> hostRed(img.rows * img.cols);
+    std::vector<unsigned char> hostGreen(img.rows * img.cols);
+    std::vector<unsigned char> hostBlue(img.rows * img.cols);
+    std::vector<unsigned char> hostGray(img.rows * img.cols);
 
     // Fill the host matrices with data
     Mat greyMat(img.rows, img.cols, CV_8UC1, Scalar(0));
-    for (int rowIdx = 0; rowIdx < HEIGHT; ++rowIdx) {
-        for (int colIdx = 0; colIdx < WIDTH; ++colIdx) {
+    for (int rowIdx = 0; rowIdx < img.rows; ++rowIdx) {
+        for (int colIdx = 0; colIdx < img.cols; ++colIdx) {
             auto & vec = img.at<cv::Vec<uchar, 3>>(rowIdx, colIdx);
-            int offset = rowIdx * WIDTH + colIdx;
-            hostBlue[offset] = vec[0]; 
-            hostGreen[offset] = vec[1]; 
+            int offset = rowIdx * img.cols + colIdx;
             hostRed[offset] = vec[2];
+            hostGreen[offset] = vec[1];
+            hostBlue[offset] = vec[0];
         }
     }
 
@@ -136,13 +130,15 @@ int main() {
 
     // Copy result from device to host
     checkCudaErrors(
-        cudaMemcpy (hostGray.data(), deviceGray,byteSize,cudaMemcpyDeviceToHost)
+        cudaMemcpy (hostGray.data(), deviceGray, byteSize, cudaMemcpyDeviceToHost)
     );
 
     // Copy result from gray matrix into matlab OpenCV input array format
-    for (int rowIdx = 0; rowIdx < HEIGHT; ++rowIdx) {
-    for (int colIdx = 0; colIdx < WIDTH; ++colIdx)
-      greyMat.at<uchar>(rowIdx, colIdx) = hostGray[(rowIdx*WIDTH)+colIdx];
+    for (int rowIdx = 0; rowIdx < img.rows; ++rowIdx) {
+        for (int colIdx = 0; colIdx < img.cols; ++colIdx) {
+            int offset = rowIdx * img.cols + colIdx;
+            greyMat.at<uchar>(rowIdx, colIdx) = hostGray[offset];
+        }
     }
 
     // Write img to gray.jpg
