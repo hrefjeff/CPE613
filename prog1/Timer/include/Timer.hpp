@@ -15,6 +15,6 @@ class Timer {
     class Implementation;
     std::shared_ptr<Implementation> implementation_;
 
-}
+};
 
 #endif
