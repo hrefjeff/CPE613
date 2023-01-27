@@ -1,0 +1,5 @@
+saxpy_test.i*
+saxpy_test.o*
+build
+*nsys-rep
+*ncu-rep
