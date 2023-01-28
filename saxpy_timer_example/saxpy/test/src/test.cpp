@@ -109,7 +109,7 @@ int main (int argc, char ** argv) {
     &incy  
   );
   
-  // should get an average runtime over many runs instead of the single one here
+  // Begin saxpy kernel, run it multiple times. print result
 
   // start the timer
   Timer timer;
