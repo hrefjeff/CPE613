@@ -1,2 +1,4 @@
 # Don't track any DMC generated files
 *.i*
+*.o*
+build
