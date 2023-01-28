@@ -38,20 +38,20 @@ int main (int argc, char ** argv) {
   int incy = 1;
   
   // set a size for our vectors
-  int n = 10000000;
+  const int VEC_SIZE = 10000000;
 
   // allocate vectors x and y_reference
   std::vector<float> x (
-    n * incx,
+    VEC_SIZE * incx,
     0.0f
   );
   std::vector<float> y_reference (
-    n * incy,
+    VEC_SIZE * incy,
     0.0f
   );
 
   // initialize the vectors x and y to some arbitrary values
-  for (int idx = 0; idx < n; ++idx) {
+  for (int idx = 0; idx < VEC_SIZE; ++idx) {
     x[idx * incx] = rand() % 1000;
     y_reference[idx * incy] = x[idx * incx];
   }
@@ -127,10 +127,10 @@ int main (int argc, char ** argv) {
   
   // get elapsed time, estimated flops per second, and effective bandwidth
   double elapsedTime_ms = timer.elapsedTime_ms();
-  double numberOfFlops = 2 * n;
+  double numberOfFlops = 2 * VEC_SIZE;
   double flopRate = numberOfFlops / (elapsedTime_ms / 1.0e3);
-  double numberOfReads = 3 * n;
-  double numberOfWrites = n;
+  double numberOfReads = 2 * VEC_SIZE;
+  double numberOfWrites = VEC_SIZE;
   double effectiveBandwidth_bitspersec {
     (numberOfReads + numberOfWrites) * sizeof(float) * 8 / 
     (elapsedTime_ms / 1.0e3)
