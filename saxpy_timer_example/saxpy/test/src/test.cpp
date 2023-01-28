@@ -50,11 +50,10 @@ int main (int argc, char ** argv) {
     0.0f
   );
 
-  // initialize the vectors x and y to some arbitrary values,
-  // ideally student submissions should be random
+  // initialize the vectors x and y to some arbitrary values
   for (int idx = 0; idx < n; ++idx) {
-    x[idx * incx] = idx;
-    y_reference[idx * incy] = n - idx;
+    x[idx * incx] = rand() % 1000;
+    y_reference[idx * incy] = x[idx * incx];
   }
 
   // allocate device memory
@@ -130,7 +129,7 @@ int main (int argc, char ** argv) {
   double elapsedTime_ms = timer.elapsedTime_ms();
   double numberOfFlops = 2 * n;
   double flopRate = numberOfFlops / (elapsedTime_ms / 1.0e3);
-  double numberOfReads = 2 * n;
+  double numberOfReads = 3 * n;
   double numberOfWrites = n;
   double effectiveBandwidth_bitspersec {
     (numberOfReads + numberOfWrites) * sizeof(float) * 8 / 
