@@ -108,41 +108,57 @@ int main (int argc, char ** argv) {
     y_reference.data(),
     &incy  
   );
+
+  int many_runs = 0;
+  double elapsedTime_ms = 0.0f;
+  double total_elapsedTime_ms = 0.0f;
+  double numberOfFlops = 0;
+  double totalFlops = 0;
+  double flopRate = 0.0f;
+  double numberOfReads = 2 * VEC_SIZE;
+  double totalReads = 0.0f;
+  double numberOfWrites = VEC_SIZE;
+  double totalWrites = 0.0f;
+  double effectiveBandwidth_bitspersec = 0.0f;
   
   // Begin saxpy kernel, run it multiple times. print result
+  for (int i = 0; i < many_runs; i++) {
+    // start the timer
+    Timer timer;
+    timer.start();
+    // execute our saxpy
+    saxpy (
+      VEC_SIZE,
+      alpha,
+      dev_x,
+      incx,
+      dev_y_computed,
+      incy  
+    );
+    timer.stop();
+    
+    // get elapsed time, estimated flops per second, and effective bandwidth
+    elapsedTime_ms = timer.elapsedTime_ms();
+    total_elapsedTime_ms += timer.elapsedTime_ms();
+    totalFlops += 2 * VEC_SIZE;
+    flopRate += numberOfFlops / (elapsedTime_ms / 1.0e3);
+    totalReads += 2 * VEC_SIZE;
+    totalWrites += VEC_SIZE;
+  }
 
-  // start the timer
-  Timer timer;
-  timer.start();
-  // execute our saxpy
-  saxpy (
-    VEC_SIZE,
-    alpha,
-    dev_x,
-    incx,
-    dev_y_computed,
-    incy  
-  );
-  timer.stop();
-  
-  // get elapsed time, estimated flops per second, and effective bandwidth
-  double elapsedTime_ms = timer.elapsedTime_ms();
-  double numberOfFlops = 2 * VEC_SIZE;
-  double flopRate = numberOfFlops / (elapsedTime_ms / 1.0e3);
-  double numberOfReads = 2 * VEC_SIZE;
-  double numberOfWrites = VEC_SIZE;
-  double effectiveBandwidth_bitspersec {
-    (numberOfReads + numberOfWrites) * sizeof(float) * 8 / 
-    (elapsedTime_ms / 1.0e3)
-  }; 
+  double avg_elapsedTime_ms = total_elapsedTime_ms / many_runs;
+  double avg_flopRate = flopRate / many_runs;
   
   printf (
    "\t- Computational Rate:         %20.16e Gflops\n",
-   flopRate / 1e9 
+    avg_flopRate / 1e9 
   );
+  double avg_effectiveBandwidth_bitspersec =
+      (totalReads + totalWrites) * sizeof(float) * 8 / 
+      (avg_elapsedTime_ms / 1.0e3);
   printf (
    "\t- Effective Bandwidth:        %20.16e Gbps\n",
-   effectiveBandwidth_bitspersec / 1e9 
+    avg_effectiveBandwidth_bitspersec / 1e9 
   );
 
   // copy result down from device
