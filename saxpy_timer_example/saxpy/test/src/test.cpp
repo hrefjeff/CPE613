@@ -38,7 +38,7 @@ int main (int argc, char ** argv) {
   int incy = 1;
   
   // set a size for our vectors
-  const int VEC_SIZE = 10000000;
+  int VEC_SIZE = 10000000;
 
   // allocate vectors x and y_reference
   std::vector<float> x (
@@ -101,7 +101,7 @@ int main (int argc, char ** argv) {
   //  - note that we pre-declared the name the Fortran compiler produced above
   //    (add a trailing underscore to the function name) 
   saxpy_ (
-    &n,
+    &VEC_SIZE,
     &alpha,
     x.data(),
     &incx,
@@ -116,7 +116,7 @@ int main (int argc, char ** argv) {
   timer.start();
   // execute our saxpy
   saxpy (
-    n,
+    VEC_SIZE,
     alpha,
     dev_x,
     incx,
@@ -160,7 +160,7 @@ int main (int argc, char ** argv) {
   );
 
   double relerr = relative_error_l2 (
-    n,
+    VEC_SIZE,
     y_reference.data(),
     incy,
     y_computed.data(),
