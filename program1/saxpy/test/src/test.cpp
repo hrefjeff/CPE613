@@ -114,17 +114,10 @@ int main (int argc, char ** argv) {
   double total_elapsedTime_ms = 0.0f;
 
   double numberOfFlops = 2 * VEC_SIZE;
-  double totalNumberOfFlops = 0.0f;
-
   double flopRate = 0.0f;
   double totalFlopRate = 0.0f;
-
   double numberOfReads = 2 * VEC_SIZE;
-  double totalReads = 0.0f;
-
   double numberOfWrites = VEC_SIZE;
-  double totalWrites = 0.0f;
-
   double totalRelErr = 0.0f;
   
   // Begin saxpy kernel, run it multiple times. print result
@@ -172,9 +165,9 @@ int main (int argc, char ** argv) {
     );
   }
 
-  totalReads = 2 * VEC_SIZE * numOfRuns;
-  totalWrites = VEC_SIZE * numOfRuns;
-  totalNumberOfFlops = 2 * VEC_SIZE * numOfRuns;
+  double totalReads = 2 * VEC_SIZE * numOfRuns;
+  double totalWrites = VEC_SIZE * numOfRuns;
+  double totalNumberOfFlops = 2 * VEC_SIZE * numOfRuns;
 
   double avg_elapsedTime_ms = total_elapsedTime_ms / numOfRuns;
   double avg_flopRate = totalNumberOfFlops / (total_elapsedTime_ms / 1.0e3);
