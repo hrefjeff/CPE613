@@ -109,20 +109,24 @@ int main (int argc, char ** argv) {
     &incy  
   );
 
-  int many_runs = 0;
+  int numOfRuns = 0;
   double elapsedTime_ms = 0.0f;
   double total_elapsedTime_ms = 0.0f;
-  double numberOfFlops = 0;
-  double totalFlops = 0;
+
+  double numberOfFlops = 2 * n;
+  double totalNumberOfFlops = 0.0f;
+
   double flopRate = 0.0f;
+  double totalFlopRate = 0.0f;
+
   double numberOfReads = 2 * VEC_SIZE;
   double totalReads = 0.0f;
+
   double numberOfWrites = VEC_SIZE;
   double totalWrites = 0.0f;
-  double effectiveBandwidth_bitspersec = 0.0f;
   
   // Begin saxpy kernel, run it multiple times. print result
-  for (int i = 0; i < many_runs; i++) {
+  for (int i = 0; i < numOfRuns; i++) {
     // start the timer
     Timer timer;
     timer.start();
@@ -139,15 +143,17 @@ int main (int argc, char ** argv) {
     
     // get elapsed time, estimated flops per second, and effective bandwidth
     elapsedTime_ms = timer.elapsedTime_ms();
-    total_elapsedTime_ms += timer.elapsedTime_ms();
-    totalFlops += 2 * VEC_SIZE;
-    flopRate += numberOfFlops / (elapsedTime_ms / 1.0e3);
-    totalReads += 2 * VEC_SIZE;
-    totalWrites += VEC_SIZE;
+    total_elapsedTime_ms += elapsedTime_ms;
+
+    totalFlopRate += numberOfFlops / (elapsedTime_ms / 1.0e3);
   }
 
-  double avg_elapsedTime_ms = total_elapsedTime_ms / many_runs;
-  double avg_flopRate = flopRate / many_runs;
+  totalReads = 2 * VEC_SIZE * numOfRuns;
+  totalWrites = VEC_SIZE * numOfRuns;
+  totalNumberOfFlops = 2 * VEC_SIZE * numOfRuns;
+
+  double avg_elapsedTime_ms = total_elapsedTime_ms / numOfRuns;
+  double avg_flopRate = totalNumberOfFlops / (total_elapsedTime_ms / 1.0e3);
   
   printf (
    "\t- Computational Rate:         %20.16e Gflops\n",
