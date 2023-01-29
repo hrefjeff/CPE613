@@ -56,6 +56,10 @@ int main (int argc, char ** argv) {
     y_reference[idx * incy] = x[idx * incx];
   }
 
+  // set values for the scalar
+  // ideally should be random for our test
+  float alpha = 1.0f; // the suffix f denotes float as opposed to double
+
   // allocate device memory
   float * dev_x = nullptr;
   float * dev_y_computed = nullptr;
@@ -91,10 +95,6 @@ int main (int argc, char ** argv) {
       cudaMemcpyHostToDevice
     )
   );
-
-  // set values for the scalar
-  // ideally should be random for our test
-  float alpha = 1.0f; // the suffix f denotes float as opposed to double
 
   // call the Fortran version of the saxpy
   //  - note that we have to pass addresses of the nonpointer arguments
