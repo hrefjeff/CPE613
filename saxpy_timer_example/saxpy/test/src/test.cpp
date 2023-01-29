@@ -109,7 +109,7 @@ int main (int argc, char ** argv) {
     &incy  
   );
 
-  int numOfRuns = 10;
+  int numOfRuns = 1000;
   double elapsedTime_ms = 0.0f;
   double total_elapsedTime_ms = 0.0f;
 
