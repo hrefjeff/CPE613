@@ -113,7 +113,7 @@ int main (int argc, char ** argv) {
   double elapsedTime_ms = 0.0f;
   double total_elapsedTime_ms = 0.0f;
 
-  double numberOfFlops = 2 * n;
+  double numberOfFlops = 2 * VEC_SIZE;
   double totalNumberOfFlops = 0.0f;
 
   double flopRate = 0.0f;
@@ -151,6 +151,10 @@ int main (int argc, char ** argv) {
   totalReads = 2 * VEC_SIZE * numOfRuns;
   totalWrites = VEC_SIZE * numOfRuns;
   totalNumberOfFlops = 2 * VEC_SIZE * numOfRuns;
+
+  printf("This is a number reads %20.16e", totalReads);
+  printf("This is a number writes %20.16e", totalWrites);
+  printf("This is a number total flops %20.16e", totalNumberOfFlops);
 
   double avg_elapsedTime_ms = total_elapsedTime_ms / numOfRuns;
   double avg_flopRate = totalNumberOfFlops / (total_elapsedTime_ms / 1.0e3);
