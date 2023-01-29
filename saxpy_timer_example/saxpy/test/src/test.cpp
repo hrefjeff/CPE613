@@ -109,7 +109,7 @@ int main (int argc, char ** argv) {
     &incy  
   );
 
-  int numOfRuns = 0;
+  int numOfRuns = 10;
   double elapsedTime_ms = 0.0f;
   double total_elapsedTime_ms = 0.0f;
 
@@ -152,10 +152,6 @@ int main (int argc, char ** argv) {
   totalWrites = VEC_SIZE * numOfRuns;
   totalNumberOfFlops = 2 * VEC_SIZE * numOfRuns;
 
-  printf("This is a number reads %20.16e", totalReads);
-  printf("This is a number writes %20.16e", totalWrites);
-  printf("This is a number total flops %20.16e", totalNumberOfFlops);
-
   double avg_elapsedTime_ms = total_elapsedTime_ms / numOfRuns;
   double avg_flopRate = totalNumberOfFlops / (total_elapsedTime_ms / 1.0e3);
   
@@ -165,7 +161,7 @@ int main (int argc, char ** argv) {
   );
   double avg_effectiveBandwidth_bitspersec =
       (totalReads + totalWrites) * sizeof(float) * 8 / 
-      (avg_elapsedTime_ms / 1.0e3);
+      (total_elapsedTime_ms / 1.0e3);
   printf (
    "\t- Effective Bandwidth:        %20.16e Gbps\n",
     avg_effectiveBandwidth_bitspersec / 1e9 
