@@ -17,11 +17,11 @@ LIBPATH=-L$(CUDAPATH)/lib64 -L$(GTESTPATH)/lib64
 RPATH=-Wl,-rpath=`pwd`/build/lib -Wl,-rpath=`pwd`/$(GTESTPATH)/lib64 -Wl,-rpath=`pwd`/$(CUDAPATH)/lib64
 LIBS=-lcudart
 
-.PHONY: clean modules
+.PHONY: clean
 
 all: build/lib/libTimer.so build/lib/libsaxpy.so build/bin/saxpy_test
 
-build/lib/libTimer.so: modules Timer/src/Timer.cpp
+build/lib/libTimer.so: Timer/src/Timer.cpp
 	@mkdir -p build/.objects/Timer
 	$(CXX) $(CXXFLAGS) -c -fPIC -ITimer/include \
 		-I$(CUDAPATH)/include -I$(CUDAPATH)/samples/common/inc\
@@ -32,7 +32,7 @@ build/lib/libTimer.so: modules Timer/src/Timer.cpp
 	@mkdir -p build/include
 	@ln -sf ../../Timer/include/Timer.hpp build/include/Timer.hpp
 
-build/lib/libsaxpy.so: modules saxpy/src/saxpy.cu
+build/lib/libsaxpy.so: saxpy/src/saxpy.cu
 	@mkdir -p build/.objects/saxpy
 	$(NVCC) -pg $(NVCCFLAGS) $(NVCCARCHS) -Xcompiler -fPIC \
 		-Isaxpy/include -I$(CUDAPATH)/samples/common/inc \
