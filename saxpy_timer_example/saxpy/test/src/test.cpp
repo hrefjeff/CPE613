@@ -146,6 +146,28 @@ int main (int argc, char ** argv) {
     total_elapsedTime_ms += elapsedTime_ms;
 
     totalFlopRate += numberOfFlops / (elapsedTime_ms / 1.0e3);
+
+    // copy result down from device
+    std::vector<float> y_computed (
+      y_reference.size(),
+      0.0f  
+    );
+    checkCudaErrors (
+      cudaMemcpy (
+        y_computed.data(),
+        dev_y_computed,
+        byteSize_y_reference,
+        cudaMemcpyDeviceToHost
+      )
+    );
+
+    double relerr = relative_error_l2 (
+      VEC_SIZE,
+      y_reference.data(),
+      incy,
+      y_computed.data(),
+      incy
+    );
   }
 
   totalReads = 2 * VEC_SIZE * numOfRuns;
@@ -165,28 +187,6 @@ int main (int argc, char ** argv) {
   printf (
    "\t- Effective Bandwidth:        %20.16e Gbps\n",
     avg_effectiveBandwidth_bitspersec / 1e9 
-  );
-
-  // copy result down from device
-  std::vector<float> y_computed (
-    y_reference.size(),
-    0.0f  
-  );
-  checkCudaErrors (
-    cudaMemcpy (
-      y_computed.data(),
-      dev_y_computed,
-      byteSize_y_reference,
-      cudaMemcpyDeviceToHost
-    )
-  );
-
-  double relerr = relative_error_l2 (
-    VEC_SIZE,
-    y_reference.data(),
-    incy,
-    y_computed.data(),
-    incy
   );
 
   // output relative error
