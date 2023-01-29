@@ -163,7 +163,7 @@ int main (int argc, char ** argv) {
       )
     );
 
-    totalRelErr = relative_error_l2 (
+    totalRelErr += relative_error_l2 (
       VEC_SIZE,
       y_reference.data(),
       incy,
