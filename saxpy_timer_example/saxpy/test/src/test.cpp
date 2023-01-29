@@ -124,6 +124,8 @@ int main (int argc, char ** argv) {
 
   double numberOfWrites = VEC_SIZE;
   double totalWrites = 0.0f;
+
+  double totalRelErr = 0.0f;
   
   // Begin saxpy kernel, run it multiple times. print result
   for (int i = 0; i < numOfRuns; i++) {
@@ -161,7 +163,7 @@ int main (int argc, char ** argv) {
       )
     );
 
-    double relerr = relative_error_l2 (
+    totalRelErr = relative_error_l2 (
       VEC_SIZE,
       y_reference.data(),
       incy,
@@ -192,10 +194,10 @@ int main (int argc, char ** argv) {
   // output relative error
   printf (
     "\t- Relative Error (l2):        %20.16e\n",
-    relerr
+    totalRelErr
   );
 
-  if (relerr < 1.0e-7) {
+  if (totalRelErr < 1.0e-7) {
 
     printf("\t- PASSED\n");
 
