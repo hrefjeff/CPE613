@@ -1,0 +1,6 @@
+To get this to work, run following commmands:
+
+make main
+run_gpu main
+^^^ this will prompt you to enter a whole bunch of stuff. just spam enter for defaults
+mainGPU.o<id> will be generated. that's the output file
