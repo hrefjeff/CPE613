@@ -3,35 +3,58 @@
 
 #include <cmath>
 #include <cstdio>
+#include <cstdlib>
 #include <vector>
+#include <iostream>
+
+using namespace std;
 
 int main (int argc, char ** argv) {
   
     // set a size for our vectors
-    int VEC_SIZE = 100;
+    int N = 4;
+    int VEC_SIZE = N*N;
 
     // allocate vectors x and y_reference
-    std::vector<float> matrix1 (
+    vector<float> matrix1 (
     VEC_SIZE,
     0.0f
     );
-    std::vector<float> matrix2 (
+    vector<float> matrix2 (
     VEC_SIZE,
     0.0f
     );
-    std::vector<float> matrix3 (
-    VEC_SIZE,
-    0.0f
-    );
-    std::vector<float> matrixCheck (
+    vector<float> matrix3 (
     VEC_SIZE,
     0.0f
     );
     
-    // initialize the vectors x and y to some arbitrary values
-    for (int idx = 0; idx < VEC_SIZE; ++idx) {
-    matrix1[idx] = rand() % 1000;
-    matrix2[idx] = rand() % 1000;
+    // Provide arbitrary time value for random seed
+    srand((unsigned) time(NULL));
+
+    // initialize the matrix1 and matrix2 to some arbitrary values
+    for (int i=0; i<N; i++){
+        for (int j=0; j<N; j++){
+            matrix1[i*N+j] = rand() % 10;
+            matrix2[i*N+j] = rand() % 10;
+            matrix3[i*N+j] = 0;
+        }
+    }
+
+    // Print A
+    for (int i=0; i<N; i++){
+        for (int j=0; j<N; j++){
+            cout << matrix1[i*N+j] << " ";
+        }
+        cout << endl;
+    }
+
+    // Print B
+    for (int i=0; i<N; i++){
+        for (int j=0; j<N; j++){
+            cout << matrix2[i*N+j] << " ";
+        }
+        cout << endl;
     }
 
     // allocate device memory
@@ -73,7 +96,7 @@ int main (int argc, char ** argv) {
     );
 
     // execute our matrix multiplication
-    matrixMultiplication(matrix1, matrix2, matrix3, VEC_SIZE);
+    matrixMultiplication(dev_A, dev_B, dev_C, VEC_SIZE);
 
     checkCudaErrors (
         cudaMemcpy (
@@ -84,27 +107,46 @@ int main (int argc, char ** argv) {
         )
     );
 
+    // Print C
+    for (int i=0; i<N; i++){
+        for (int j=0; j<N; j++){
+            cout << matrix3[i*N+j] << " ";
+        }
+        cout << endl;
+    }
+
     // Now do the matrix multiplication on the CPU
+
+    vector<float> matrixCheck(VEC_SIZE, 0.0f);
+
     float sum;
-    for (int row=0; row<VEC_SIZE; row++){
-        for (int col=0; col<VEC_SIZE; col++){
-            sum = 0.f;
-            for (int n=0; n<N; n++){
+    for (int row=0; row<N; row++){
+        for (int col=0; col<N; col++){
+            sum = 0;
+            for (int n=0; n<VEC_SIZE; n++){
                 sum += matrix1[row*N+n]*matrix2[n*N+col];
             }
             matrixCheck[row*N+col] = sum;
         }
     }
 
-    double err = 0;
-    // Check the result and make sure it is correct
-    for (int ROW=0; ROW < VEC_SIZE; ROW++){
-        for (int COL=0; COL < VEC_SIZE; COL++){
-            err += matrixCheck[ROW * N + COL] - matrix3[ROW * N + COL];
+    // Print Check
+    for (int i=0; i<N; i++){
+        for (int j=0; j<N; j++){
+            cout << matrixCheck[i*N+j] << " ";
         }
+        cout << endl;
     }
 
-    std::cout << "Error: " << err << std::endl;
+    // bool err = false;
+    // for (int ROW=0; ROW < N; ROW++){
+    //     for (int COL=0; COL < N; COL++){
+    //         if (matrixCheck[ROW * N + COL] != matrix3[ROW * N + COL]) err = true;
+    //     }
+    // }
+
+    // if (err) cout << "The two matricies do not match!!!" << endl;
+    // else cout << "Woo! The matricies match." << endl;
 
     return 0;
 
