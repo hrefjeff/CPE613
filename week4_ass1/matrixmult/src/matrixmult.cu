@@ -12,9 +12,9 @@ __global__ void matrixMultiplication_kernel(
 
     float tmpSum = 0;
 
-    if (ROW < N && COL < N) {
+    if ((ROW < N) && (COL < N)) {
         // each thread computes one element of the block sub-matrix
-        for (int i = 0; i < N; i++) {
+        for (int i = 0; i < N; ++i) {
             tmpSum += dev_A[ROW * N + i] * dev_B[i * N + COL];
         }
     }

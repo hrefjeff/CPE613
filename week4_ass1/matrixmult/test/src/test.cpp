@@ -12,34 +12,46 @@ using namespace std;
 int main (int argc, char ** argv) {
   
     // set a size for our vectors
-    int N = 4;
+    int N = 3;
     int VEC_SIZE = N*N;
 
     // allocate vectors x and y_reference
-    vector<float> matrix1 (
-    VEC_SIZE,
-    0.0f
-    );
-    vector<float> matrix2 (
-    VEC_SIZE,
-    0.0f
-    );
+    // vector<float> matrix1 (
+    // VEC_SIZE,
+    // 0.0f
+    // );
+    vector<float> matrix1 {1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0};
+    // vector<float> matrix2 (
+    // VEC_SIZE,
+    // 0.0f
+    // );
+    vector<float> matrix2 {9.0, 8.0, 7.0, 6.0, 5.0, 4.0, 3.0, 2.0, 1.0};
     vector<float> matrix3 (
     VEC_SIZE,
     0.0f
     );
+
+    /* Target output matrix with test data
+    ===================
+    1 | 30  | 24 | 18 |
+    ===================
+    2 | 84  | 69 | 54 |
+    ===================
+    3 | 138 | 14 | 90 |
+    ===================
+    */
     
     // Provide arbitrary time value for random seed
-    srand((unsigned) time(NULL));
+    // srand((unsigned) time(NULL));
 
-    // initialize the matrix1 and matrix2 to some arbitrary values
-    for (int i=0; i<N; i++){
-        for (int j=0; j<N; j++){
-            matrix1[i*N+j] = rand() % 10;
-            matrix2[i*N+j] = rand() % 10;
-            matrix3[i*N+j] = 0;
-        }
-    }
+    // // initialize the matrix1 and matrix2 to some arbitrary values
+    // for (int i=0; i<N; i++){
+    //     for (int j=0; j<N; j++){
+    //         matrix1[i*N+j] = rand() % 10;
+    //         matrix2[i*N+j] = rand() % 10;
+    //         matrix3[i*N+j] = 0;
+    //     }
+    // }
 
     // Print A
     for (int i=0; i<N; i++){
@@ -61,13 +73,12 @@ int main (int argc, char ** argv) {
     float * dev_A = nullptr;
     float * dev_B = nullptr;
     float * dev_C = nullptr;
-    size_t byteSize_A = matrix1.size() * sizeof(float);
-    size_t byteSize_B = matrix2.size() * sizeof(float);
-    size_t byteSize_C = matrix3.size() * sizeof(float);
+    size_t byteSize_A = VEC_SIZE * sizeof(float);
+    size_t byteSize_B = VEC_SIZE * sizeof(float);
+    size_t byteSize_C = VEC_SIZE * sizeof(float);
     checkCudaErrors(cudaMalloc(&dev_A, byteSize_A));
     checkCudaErrors(cudaMalloc(&dev_B, byteSize_B));
     checkCudaErrors(cudaMalloc(&dev_C, byteSize_C));
-  
   
     // copy input to device
     checkCudaErrors (
@@ -96,14 +107,14 @@ int main (int argc, char ** argv) {
     );
 
     // execute our matrix multiplication
-    matrixMultiplication(dev_A, dev_B, dev_C, VEC_SIZE);
+    matrixMultiplication(dev_A, dev_B, dev_C, N);
 
     checkCudaErrors (
         cudaMemcpy (
-        matrix3.data(),
-        dev_C,
-        byteSize_C,
-        cudaMemcpyDeviceToHost
+            matrix3.data(),
+            dev_C,
+            byteSize_C,
+            cudaMemcpyDeviceToHost
         )
     );
 
@@ -117,18 +128,20 @@ int main (int argc, char ** argv) {
 
     // Now do the matrix multiplication on the CPU
 
-    vector<float> matrixCheck(VEC_SIZE, 0.0f);
+    vector<float> matrixCheck(VEC_SIZE);
 
     float sum;
     for (int row=0; row<N; row++){
         for (int col=0; col<N; col++){
             sum = 0;
-            for (int n=0; n<VEC_SIZE; n++){
+            for (int n=0; n<N; n++){
                 sum += matrix1[row*N+n]*matrix2[n*N+col];
             }
             matrixCheck[row*N+col] = sum;
         }
     }
+
+    cout << "Printing matrix check" << endl;
 
     // Print Check
     for (int i=0; i<N; i++){
