@@ -3,8 +3,8 @@ CXX=g++
 NVCC=nvcc
 
 #BLASPATH=/opt/asn/apps/blas_gcc610_avx
-CUDAPATH=/home/jef/cuda-samples
-#CUDAPATH=/opt/asn/apps/cuda_11.7.0
+SAMPLESPATH=/home/jef/cuda-samples
+CUDAPATH=/usr/local/cuda-11.7
 
 CCFLAGS=-std=c11
 CXXFLAGS=-std=c++11 -O4
@@ -12,7 +12,7 @@ NVCCFLAGS=-std=c++11
 
 NVCCARCHS=-gencode arch=compute_80,code=sm_80 -gencode arch=compute_70,code=sm_70
 
-INCPATH=-Imatrixmult/include -I$(CUDAPATH)/include -I$(CUDAPATH)/samples/common/inc -I$(GTESTPATH)/include
+INCPATH=-Imatrixmult/include -I$(CUDAPATH)/include -I$(GTESTPATH)/include
 LIBPATH=-L$(CUDAPATH)/lib64 -L$(GTESTPATH)/lib64
 RPATH=-Wl,-rpath=`pwd`/build/lib -Wl,-rpath=`pwd`/$(GTESTPATH)/lib64 -Wl,-rpath=`pwd`/$(CUDAPATH)/lib64
 LIBS=-lcudart
@@ -35,8 +35,7 @@ all: build/lib/libmatrixmult.so build/bin/matrixmult_test
 
 build/lib/libmatrixmult.so: matrixmult/src/matrixmult.cu
 	@mkdir -p build/.objects/matrixmult
-	$(NVCC) -pg $(NVCCFLAGS) $(NVCCARCHS) -Xcompiler -fPIC \
-		-Imatrixmult/include -I$(CUDAPATH)/samples/common/inc \
+	$(NVCC) -pg $(NVCCFLAGS) -Xcompiler -fPIC -I$(SAMPLESPATH)/samples/Common/inc -Imatrixmult/include -I$(SAMPLESPATH)/Common \
 		-dc -o build/.objects/matrixmult/matrixmult.o \
 		matrixmult/src/matrixmult.cu
 	$(NVCC) -pg $(NVCCFLAGS) $(NVCCARCHS) -Xcompiler -fPIC \
@@ -50,7 +49,7 @@ build/lib/libmatrixmult.so: matrixmult/src/matrixmult.cu
 build/bin/matrixmult_test: build/lib/libmatrixmult.so \
 	matrixmult/test/src/test.cpp
 	@mkdir -p build/bin
-	$(CXX) -Ibuild/include -I$(CUDAPATH)/samples/common/inc \
+	$(CXX) -Ibuild/include -I$(SAMPLESPATH)/samples/Common/inc -I$(CUDAPATH)/include -I$(SAMPLESPATH)/Common \
 		-o build/bin/matrixmult_test matrixmult/test/src/test.cpp \
 		-Wl,-rpath=$(PWD)/build/lib \
 		-Lbuild/lib -L$(CUDAPATH)/lib64 \

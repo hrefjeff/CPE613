@@ -1,5 +1,4 @@
 #include <matrixmult.h>
-#include <helper_cuda.h>
 
 __global__ void matrixMultiplication_kernel(
     float* dev_A,

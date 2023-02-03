@@ -1,10 +1,6 @@
 #include <matrixmult.h>
 /* #include <Timer.hpp> */
 
-
-#include <cuda_runtime.h>
-#include <helper_cuda.h>
-
 #include <cmath>
 #include <cstdio>
 #include <vector>
