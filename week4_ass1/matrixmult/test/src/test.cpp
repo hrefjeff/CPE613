@@ -32,13 +32,13 @@ int main (int argc, char ** argv) {
     );
 
     /* Target output matrix with test data
-    ===================
-    1 | 30  | 24 | 18 |
-    ===================
-    2 | 84  | 69 | 54 |
-    ===================
-    3 | 138 | 14 | 90 |
-    ===================
+    ====================
+    1 | 30  | 24  | 18 |
+    ====================
+    2 | 84  | 69  | 54 |
+    ====================
+    3 | 138 | 114 | 90 |
+    ====================
     */
     
     // Provide arbitrary time value for random seed
@@ -134,8 +134,8 @@ int main (int argc, char ** argv) {
     for (int row=0; row<N; row++){
         for (int col=0; col<N; col++){
             sum = 0;
-            for (int n=0; n<N; n++){
-                sum += matrix1[row*N+n]*matrix2[n*N+col];
+            for (int i=0; i<N; i++){
+                sum += matrix1[row*N+i]*matrix2[i*N+col];
             }
             matrixCheck[row*N+col] = sum;
         }
