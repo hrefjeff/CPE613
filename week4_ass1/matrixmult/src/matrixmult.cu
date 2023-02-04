@@ -14,7 +14,7 @@ __global__ void matrixMultiplication_kernel(
 
     // First check that we are in the bounds of the matrix
     if ((ROW < N) && (COL < N)) {
-        // each thread computes one element of the block sub-matrix
+        // iterate over row, and down column
         for (int k = 0; k < N; k++) {
             tmpSum += dev_A[ROW * N + k] * dev_B[k * N + COL];
         }
@@ -29,7 +29,7 @@ void matrixMultiplication (
   int N
 ) {
 
-    int blockWidth = 16;
+    int blockWidth = 32;
 
     // Set up kernel launch parameters, so we can create grid/blocks
     dim3 blockSize(blockWidth, blockWidth);
