@@ -12,7 +12,7 @@ using namespace std;
 int main (int argc, char ** argv) {
   
     // set a size for our vectors
-    int N = 10;
+    int N = 64;
     int VEC_SIZE = N*N;
 
     // allocate vectors x and y_reference
@@ -47,20 +47,20 @@ int main (int argc, char ** argv) {
     }
 
     // Print A
-    for (int i=0; i<N; i++){
-        for (int j=0; j<N; j++){
-            cout << matrix1[i*N+j] << " ";
-        }
-        cout << endl;
-    }
+    // for (int i=0; i<N; i++){
+    //     for (int j=0; j<N; j++){
+    //         cout << matrix1[i*N+j] << " ";
+    //     }
+    //     cout << endl;
+    // }
 
     // Print B
-    for (int i=0; i<N; i++){
-        for (int j=0; j<N; j++){
-            cout << matrix2[i*N+j] << " ";
-        }
-        cout << endl;
-    }
+    // for (int i=0; i<N; i++){
+    //     for (int j=0; j<N; j++){
+    //         cout << matrix2[i*N+j] << " ";
+    //     }
+    //     cout << endl;
+    // }
 
     // allocate device memory
     float * dev_A = nullptr;
@@ -120,7 +120,7 @@ int main (int argc, char ** argv) {
         for (int j=0; j<N; j++){
             cout << matrix3[i*N+j] << " ";
         }
-        cout << endl;
+        cout << endl << endl;
     }
 
     // Now do the matrix multiplication on the CPU

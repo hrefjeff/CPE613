@@ -1,5 +1,5 @@
 #include <matrixmult.h>
-#define TILE_WIDTH 16
+#define TILE_WIDTH 32
 
 __global__ void tiledMatrixMultiplication_kernel (
     float* M,
@@ -19,16 +19,12 @@ __global__ void tiledMatrixMultiplication_kernel (
     int Col = bx * TILE_WIDTH + tx;
 
     // Loop over the M and N tiles required to compute P element
-    float Pvalue = 0;
-    for (int ph = 0; ph < ceil(Width/(float)TILE_WIDTH); ++ph) {
+    float Pvalue = 0.0f;
+    for (int ph = 0; ph < Width/TILE_WIDTH; ++ph) {
 
         // Colaborative loading of M and N tiles into shared memory
-        if ((Row < Width) && (ph*TILE_WIDTH+tx) < Width)
-            Mds[ty][tx] = M[Row*Width + ph*TILE_WIDTH + tx];
-        else Mds[ty][tx] = 0.0f;
-        if ((ph*TILE_WIDTH+ty) < Width && Col < Width)
-            Nds[ty][ty] = N[(ph*TILE_WIDTH + ty)*Width + Col];
-        else Nds[ty][tx] = 0.0f;
+        Mds[ty][tx] = M[Row*Width + ph*TILE_WIDTH + tx];
+        Nds[ty][tx] = N[(ph*TILE_WIDTH + ty)*Width + Col];
         __syncthreads();
 
         for (int k = 0; k < TILE_WIDTH; ++k) {
@@ -37,8 +33,7 @@ __global__ void tiledMatrixMultiplication_kernel (
         __syncthreads();
 
     }
-    if ((Row < Width) && (Col < Width))
-        P[Row*Width + Col] = Pvalue;
+    P[Row*Width + Col] = Pvalue;
 }
 
 __global__ void matrixMultiplication_kernel(
