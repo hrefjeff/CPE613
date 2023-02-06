@@ -3,8 +3,8 @@ CXX=g++
 NVCC=nvcc
 
 #BLASPATH=/opt/asn/apps/blas_gcc610_avx
-SAMPLESPATH=/home/jef/cuda-samples
-CUDAPATH=/usr/local/cuda-11.7
+SAMPLESPATH=/home/jeff/code/cuda-samples
+CUDAPATH=/usr/local/cuda-12.0
 
 CCFLAGS=-std=c11
 CXXFLAGS=-std=c++11 -O4
