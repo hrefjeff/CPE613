@@ -12,7 +12,7 @@ using namespace std;
 int main (int argc, char ** argv) {
   
     // set a size for our vectors
-    int N = 100;
+    int N = 10;
     int VEC_SIZE = N*N;
 
     // allocate vectors x and y_reference
