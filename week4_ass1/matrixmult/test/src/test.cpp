@@ -12,17 +12,17 @@ using namespace std;
 int main (int argc, char ** argv) {
   
     // set a size for our vectors
-    int N = 3;
+    int N = 100;
     int VEC_SIZE = N*N;
 
     // allocate vectors x and y_reference
-    vector<float> matrix1(VEC_SIZE, 0.0f);
+    vector<float> matrix1(VEC_SIZE, 1.0);
 
     //vector<float> matrix1 {1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0};
-    vector<float> matrix2(VEC_SIZE, 0.0f);
+    vector<float> matrix2(VEC_SIZE, 1.0);
     
     //vector<float> matrix2 {9.0, 8.0, 7.0, 6.0, 5.0, 4.0, 3.0, 2.0, 1.0};
-    vector<float> matrix3(VEC_SIZE, 0.0f);
+    vector<float> matrix3(VEC_SIZE, 1.0);
 
     /* Target output matrix with test data
     ====================
@@ -145,13 +145,12 @@ int main (int argc, char ** argv) {
         }
     }
 
-    if (err) cout << "The two matricies do not match!!!" << endl;
-    else cout << "Woo! The matricies match." << endl;
+    if (err) cout << "ERROR: The two matricies do not match!!!" << endl;
+    else cout << "SUCCESS: Woo! The matricies match." << endl;
 
     double elapsedTime_ms = timer.elapsedTime_ms();
     double numberOfFlops = 2 * VEC_SIZE;
     double flopRate = numberOfFlops / (elapsedTime_ms / 1.0e3);
-
     
     printf (
     "\t- Computational Rate:         %20.16e Gflops\n",

@@ -15,11 +15,11 @@ __global__ void matrixMultiplication_kernel(
     // First check that we are in the bounds of the matrix
     if ((ROW < N) && (COL < N)) {
         // iterate over row, and down column
-        for (int k = 0; k < N; k++) {
+        for (int k = 0; k < N; ++k) {
             tmpSum += dev_A[ROW * N + k] * dev_B[k * N + COL];
         }
+        dev_C[ROW * N + COL] = tmpSum;
     }
-    dev_C[ROW * N + COL] = tmpSum;
 }
 
 void matrixMultiplication (
