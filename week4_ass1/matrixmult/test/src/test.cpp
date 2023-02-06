@@ -1,5 +1,5 @@
 #include <matrixmult.h>
-/* #include <Timer.hpp> */
+#include <Timer.hpp>
 
 #include <cmath>
 #include <cstdio>
@@ -100,7 +100,11 @@ int main (int argc, char ** argv) {
     );
 
     // execute our matrix multiplication
+    
+    Timer timer;
+    timer.start();
     matrixMultiplication(dev_A, dev_B, dev_C, N);
+    timer.stop();
 
     checkCudaErrors (
         cudaMemcpy (
@@ -143,6 +147,23 @@ int main (int argc, char ** argv) {
 
     if (err) cout << "The two matricies do not match!!!" << endl;
     else cout << "Woo! The matricies match." << endl;
+
+    double elapsedTime_ms = timer.elapsedTime_ms();
+    double numberOfFlops = 2 * VEC_SIZE;
+    double flopRate = numberOfFlops / (elapsedTime_ms / 1.0e3);
+
+    
+    printf (
+    "\t- Computational Rate:         %20.16e Gflops\n",
+        flopRate / 1e9 
+    );
+    double effectiveBandwidth_bitspersec =
+      ((2 * VEC_SIZE) + VEC_SIZE) * sizeof(float) * 8 / 
+      (elapsedTime_ms / 1.0e3);
+    printf (
+        "\t- Effective Bandwidth:        %20.16e Gbps\n",
+        effectiveBandwidth_bitspersec / 1e9 
+    );
 
     return 0;
 

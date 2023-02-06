@@ -19,23 +19,22 @@ LIBS=-lcudart
 
 .PHONY: clean
 
-#all: build/lib/libTimer.so build/lib/libsaxpy.so build/bin/saxpy_test
-all: build/lib/libmatrixmult.so build/bin/matrixmult_test
+all: build/lib/libTimer.so build/lib/libmatrixmult.so build/bin/matrixmult_test
 
-# build/lib/libTimer.so: Timer/src/Timer.cpp
-# 	@mkdir -p build/.objects/Timer
-# 	$(CXX) $(CXXFLAGS) -c -fPIC -ITimer/include \
-# 		-I$(CUDAPATH)/include -I$(CUDAPATH)/samples/common/inc\
-# 		-o build/.objects/Timer/Timer.os Timer/src/Timer.cpp
-# 	@mkdir -p build/lib
-# 	$(CXX) -shared -o build/lib/libTimer.so build/.objects/Timer/* \
-# 		-L$(CUDAPATH)/lib64 -lcudart_static
-# 	@mkdir -p build/include
-# 	@ln -sf ../../Timer/include/Timer.hpp build/include/Timer.hpp
+build/lib/libTimer.so: Timer/src/Timer.cpp
+	@mkdir -p build/.objects/Timer
+	$(CXX) $(CXXFLAGS) -c -fPIC -ITimer/include \
+		-I$(CUDAPATH)/include -I$(SAMPLESPATH)/Common \
+		-o build/.objects/Timer/Timer.os Timer/src/Timer.cpp
+	@mkdir -p build/lib
+	$(CXX) -shared -o build/lib/libTimer.so build/.objects/Timer/* \
+		-L$(CUDAPATH)/lib64 -lcudart_static
+	@mkdir -p build/include
+	@ln -sf ./Timer/include/Timer.hpp build/include/Timer.hpp
 
 build/lib/libmatrixmult.so: matrixmult/src/matrixmult.cu
 	@mkdir -p build/.objects/matrixmult
-	$(NVCC) -pg $(NVCCFLAGS) -Xcompiler -fPIC -I$(SAMPLESPATH)/samples/Common/inc -Imatrixmult/include -I$(SAMPLESPATH)/Common \
+	$(NVCC) -pg $(NVCCFLAGS) -Xcompiler -fPIC -Imatrixmult/include -I$(SAMPLESPATH)/Common \
 		-dc -o build/.objects/matrixmult/matrixmult.o \
 		matrixmult/src/matrixmult.cu
 	$(NVCC) -pg $(NVCCFLAGS) $(NVCCARCHS) -Xcompiler -fPIC \
@@ -46,14 +45,15 @@ build/lib/libmatrixmult.so: matrixmult/src/matrixmult.cu
 	@mkdir -p build/include
 	@ln -sf ../../matrixmult/include/matrixmult.h build/include/matrixmult.h
 
-build/bin/matrixmult_test: build/lib/libmatrixmult.so \
+build/bin/matrixmult_test: build/lib/libTimer.so build/lib/libmatrixmult.so \
 	matrixmult/test/src/test.cpp
 	@mkdir -p build/bin
-	$(CXX) -Ibuild/include -I$(SAMPLESPATH)/samples/Common/inc -I$(CUDAPATH)/include -I$(SAMPLESPATH)/Common \
+	$(CXX) -Ibuild/include -I$(SAMPLESPATH)/Common/inc \
+		-I$(CUDAPATH)/include -I$(SAMPLESPATH)/Common -ITimer/include \
 		-o build/bin/matrixmult_test matrixmult/test/src/test.cpp \
 		-Wl,-rpath=$(PWD)/build/lib \
 		-Lbuild/lib -L$(CUDAPATH)/lib64 \
-		-lmatrixmult -lcudart
+		-lTimer -lmatrixmult -lcudart
 
 clean:
 	rm -rf build
