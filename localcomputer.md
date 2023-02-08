@@ -14,5 +14,7 @@ https://www.youtube.com/watch?v=1HGBk78BqR4 Helpful article to get debugger for 
 
 ```sh
 CUDAPATH=/usr/local/cuda-12.0
-SAMPLESPATH=/home/jeff/code/cuda-samples
+SAMPLESPATH=/home/jeff/code/cuda-samples/Common
 ```
+
+If "cuda_helper.h" can't be found, update the code with the SAMPLESPATH
