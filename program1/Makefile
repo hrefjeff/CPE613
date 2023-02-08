@@ -9,7 +9,7 @@ CCFLAGS=-std=c11
 CXXFLAGS=-std=c++11 -O4
 NVCCFLAGS=-std=c++11
 
-NVCCARCHS=-gencode arch=compute_80,code=sm_80 -gencode arch=compute_70,code=sm_70
+NVCCARCHS=-gencode arch=compute_86,code=sm_86
 
 TIMERINCPATH=-I$(CUDAPATH)/include -ITimer/include
 INCPATH=-Isaxpy/include -I$(CUDAPATH)/include -I$(CUDAPATH)/samples/common/inc -I$(GTESTPATH)/include
