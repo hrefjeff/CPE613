@@ -12,26 +12,26 @@ using namespace std;
 int main (int argc, char ** argv) {
   
     // set a size for our vectors
-    int N = 4;
+    int N = 256;
     int VEC_SIZE = N*N;
 
     // allocate vectors x and y_reference
     
-    // vector<float> matrix1(VEC_SIZE, 1.0);
-    vector<float> matrix1 {
-        1.0, 2.0, 3.0, 4.0,
-        5.0, 6.0, 7.0, 8.0, 
-        9.0, 10.0, 11.0, 12.0,
-        13.0, 14.0, 15.0, 16.0
-    };
+    vector<float> matrix1(VEC_SIZE, 1.0);
+    // vector<float> matrix1 {
+    //     1.0, 2.0, 3.0, 4.0,
+    //     5.0, 6.0, 7.0, 8.0, 
+    //     9.0, 10.0, 11.0, 12.0,
+    //     13.0, 14.0, 15.0, 16.0
+    // };
     
-    //vector<float> matrix2(VEC_SIZE, 1.0);
-    vector<float> matrix2 {
-        16.0, 15.0, 14.0, 13.0,
-        12.0, 11.0, 10.0, 9.0,
-        8.0, 7.0, 6.0, 5.0,
-        4.0, 3.0, 2.0, 1.0
-    };
+    vector<float> matrix2(VEC_SIZE, 1.0);
+    // vector<float> matrix2 {
+    //     16.0, 15.0, 14.0, 13.0,
+    //     12.0, 11.0, 10.0, 9.0,
+    //     8.0, 7.0, 6.0, 5.0,
+    //     4.0, 3.0, 2.0, 1.0
+    // };
     vector<float> matrix3(VEC_SIZE, 1.0);
 
     /* Target output matrix with test data
@@ -48,29 +48,29 @@ int main (int argc, char ** argv) {
     // srand((unsigned) time(NULL));
 
     // initialize the matrix1 and matrix2 to some arbitrary values
-    // for (int i=0; i<N; i++){
-    //     for (int j=0; j<N; j++){
-    //         matrix1[i*N+j] = rand() % 10;
-    //         matrix2[i*N+j] = rand() % 10;
-    //         matrix3[i*N+j] = 0;
-    //     }
-    // }
+    for (int i=0; i<N; i++){
+        for (int j=0; j<N; j++){
+            matrix1[i*N+j] = rand() % 10;
+            matrix2[i*N+j] = rand() % 10;
+            matrix3[i*N+j] = 0;
+        }
+    }
 
     // Print A
-    for (int i=0; i<N; i++){
-        for (int j=0; j<N; j++){
-            cout << matrix1[i*N+j] << " ";
-        }
-        cout << endl;
-    }
+    // for (int i=0; i<N; i++){
+    //     for (int j=0; j<N; j++){
+    //         cout << matrix1[i*N+j] << " ";
+    //     }
+    //     cout << endl;
+    // }
 
     // Print B
-    for (int i=0; i<N; i++){
-        for (int j=0; j<N; j++){
-            cout << matrix2[i*N+j] << " ";
-        }
-        cout << endl;
-    }
+    // for (int i=0; i<N; i++){
+    //     for (int j=0; j<N; j++){
+    //         cout << matrix2[i*N+j] << " ";
+    //     }
+    //     cout << endl;
+    // }
 
     // allocate device memory
     float * dev_A = nullptr;
@@ -126,12 +126,12 @@ int main (int argc, char ** argv) {
     );
 
     // Print C
-    for (int i=0; i<N; i++){
-        for (int j=0; j<N; j++){
-            cout << matrix3[i*N+j] << " ";
-        }
-        cout << endl << endl;
-    }
+    // for (int i=0; i<N; i++){
+    //     for (int j=0; j<N; j++){
+    //         cout << matrix3[i*N+j] << " ";
+    //     }
+    //     cout << endl << endl;
+    // }
 
     // Now do the matrix multiplication on the CPU
 

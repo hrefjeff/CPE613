@@ -10,7 +10,7 @@ CCFLAGS=-std=c11
 CXXFLAGS=-std=c++11 -O4
 NVCCFLAGS=-std=c++11
 
-NVCCARCHS=-gencode arch=compute_80,code=sm_80 -gencode arch=compute_70,code=sm_70
+NVCCARCHS=-gencode arch=compute_86,code=sm_86
 
 INCPATH=-Imatrixmult/include -I$(CUDAPATH)/include -I$(GTESTPATH)/include
 LIBPATH=-L$(CUDAPATH)/lib64 -L$(GTESTPATH)/lib64
