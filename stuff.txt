@@ -1,4 +1,4 @@
 
 alabama super computer creds:
-uname uahclsc0002
+uname uahclsc0002@dmc.asc.edu
 pw    groovin1
