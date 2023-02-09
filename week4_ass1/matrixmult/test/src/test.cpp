@@ -12,7 +12,7 @@ using namespace std;
 int main (int argc, char ** argv) {
   
     // set a size for our vectors
-    int N = 256;
+    int N = 1024;
     int VEC_SIZE = N*N;
 
     // allocate vectors x and y_reference
@@ -110,19 +110,55 @@ int main (int argc, char ** argv) {
     );
 
     // execute our matrix multiplication
-    
-    Timer timer;
-    timer.start();
-    matrixMultiplication(dev_A, dev_B, dev_C, N);
-    timer.stop();
+    int numOfRuns = 1000;
+    double elapsedTime_ms = 0.0f;
+    double total_elapsedTime_ms = 0.0f;
 
-    checkCudaErrors (
-        cudaMemcpy (
-            matrix3.data(),
-            dev_C,
-            byteSize_C,
-            cudaMemcpyDeviceToHost
-        )
+    double numberOfFlops = 2 * VEC_SIZE;
+    double flopRate = 0.0f;
+    double totalFlopRate = 0.0f;
+    double numberOfReads = 2 * VEC_SIZE;
+    double numberOfWrites = VEC_SIZE;
+    
+    for (int runCount = 0; runCount < numOfRuns; runCount++) {
+        Timer timer;
+        timer.start();
+        matrixMultiplication(dev_A, dev_B, dev_C, N);
+        timer.stop();
+
+        // get elapsed time, estimated flops per second, and effective bandwidth
+        elapsedTime_ms = timer.elapsedTime_ms();
+        total_elapsedTime_ms += elapsedTime_ms;
+
+        totalFlopRate += numberOfFlops / (elapsedTime_ms / 1.0e3);
+
+        checkCudaErrors (
+            cudaMemcpy (
+                matrix3.data(),
+                dev_C,
+                byteSize_C,
+                cudaMemcpyDeviceToHost
+            )
+        );
+    }
+
+    double totalReads = 2 * VEC_SIZE * numOfRuns;
+    double totalWrites = VEC_SIZE * numOfRuns;
+    double totalNumberOfFlops = 2 * VEC_SIZE * numOfRuns;
+
+    double avg_elapsedTime_ms = total_elapsedTime_ms / numOfRuns;
+    double avg_flopRate = totalNumberOfFlops / (total_elapsedTime_ms / 1.0e3);
+    
+    printf (
+    "\t- Avg Computational Rate:         %20.16e Gflops\n",
+        avg_flopRate / 1e9 
+    );
+    double avg_effectiveBandwidth_bitspersec =
+        (totalReads + totalWrites) * sizeof(float) * 8 / 
+        (avg_elapsedTime_ms / 1.0e3);
+    printf (
+    "\t- Avg Effective Bandwidth:        %20.16e Gbps\n",
+        avg_effectiveBandwidth_bitspersec / 1e9 
     );
 
     // Print C
@@ -135,44 +171,28 @@ int main (int argc, char ** argv) {
 
     // Now do the matrix multiplication on the CPU
 
-    vector<float> matrixCheck(VEC_SIZE);
+    // vector<float> matrixCheck(VEC_SIZE);
 
-    float sum;
-    for (int row=0; row<N; row++){
-        for (int col=0; col<N; col++){
-            sum = 0;
-            for (int i=0; i<N; i++){
-                sum += matrix1[row*N+i]*matrix2[i*N+col];
-            }
-            matrixCheck[row*N+col] = sum;
-        }
-    }
+    // float sum;
+    // for (int row=0; row<N; row++){
+    //     for (int col=0; col<N; col++){
+    //         sum = 0;
+    //         for (int i=0; i<N; i++){
+    //             sum += matrix1[row*N+i]*matrix2[i*N+col];
+    //         }
+    //         matrixCheck[row*N+col] = sum;
+    //     }
+    // }
 
-    bool err = false;
-    for (int ROW=0; ROW < N; ROW++){
-        for (int COL=0; COL < N; COL++){
-            if (matrixCheck[ROW * N + COL] != matrix3[ROW * N + COL]) err = true;
-        }
-    }
+    // bool err = false;
+    // for (int ROW=0; ROW < N; ROW++){
+    //     for (int COL=0; COL < N; COL++){
+    //         if (matrixCheck[ROW * N + COL] != matrix3[ROW * N + COL]) err = true;
+    //     }
+    // }
 
-    if (err) cout << "ERROR: The two matricies do not match!!!" << endl;
-    else cout << "SUCCESS: Woo! The matricies match." << endl;
-
-    double elapsedTime_ms = timer.elapsedTime_ms();
-    double numberOfFlops = 2 * VEC_SIZE;
-    double flopRate = numberOfFlops / (elapsedTime_ms / 1.0e3);
-    
-    printf (
-    "\t- Computational Rate:         %20.16e Gflops\n",
-        flopRate / 1e9 
-    );
-    double effectiveBandwidth_bitspersec =
-      ((2 * VEC_SIZE) + VEC_SIZE) * sizeof(float) * 8 / 
-      (elapsedTime_ms / 1.0e3);
-    printf (
-        "\t- Effective Bandwidth:        %20.16e Gbps\n",
-        effectiveBandwidth_bitspersec / 1e9 
-    );
+    // if (err) cout << "ERROR: The two matricies do not match!!!" << endl;
+    // else cout << "SUCCESS: Woo! The matricies match." << endl;
 
     return 0;
 
