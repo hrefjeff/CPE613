@@ -3,14 +3,20 @@ CXX=g++
 NVCC=nvcc
 
 #BLASPATH=/opt/asn/apps/blas_gcc610_avx
-SAMPLESPATH=/home/jeff/code/cuda-samples
+# Local Machine
 CUDAPATH=/usr/local/cuda-12.0
+SAMPLESPATH=/cuda-samples/Common
+
+# Alabama ASC
+#CUDAPATH=/opt/asn/apps/cuda_11.7.0
+#SAMPLESPATH=/samples/common/inc
 
 CCFLAGS=-std=c11
 CXXFLAGS=-std=c++11 -O4
 NVCCFLAGS=-std=c++11
 
-NVCCARCHS=-gencode arch=compute_86,code=sm_86
+#NVCCARCHS=-gencode arch=compute_86,code=sm_86 # Local Machine
+#NVCCARCHS=-gencode arch=compute_80,code=sm_80 -gencode arch=compute_70,code=sm_70 # Alabama ASC
 
 INCPATH=-Imatrixmult/include -I$(CUDAPATH)/include -I$(GTESTPATH)/include
 LIBPATH=-L$(CUDAPATH)/lib64 -L$(GTESTPATH)/lib64
@@ -24,7 +30,7 @@ all: build/lib/libTimer.so build/lib/libmatrixmult.so build/bin/matrixmult_test
 build/lib/libTimer.so: Timer/src/Timer.cpp
 	@mkdir -p build/.objects/Timer
 	$(CXX) $(CXXFLAGS) -c -fPIC -ITimer/include \
-		-I$(CUDAPATH)/include -I$(SAMPLESPATH)/Common \
+		-I$(CUDAPATH)/include -I$(CUDAPATH)$(SAMPLESPATH) \
 		-o build/.objects/Timer/Timer.os Timer/src/Timer.cpp
 	@mkdir -p build/lib
 	$(CXX) -shared -o build/lib/libTimer.so build/.objects/Timer/* \
@@ -34,7 +40,7 @@ build/lib/libTimer.so: Timer/src/Timer.cpp
 
 build/lib/libmatrixmult.so: matrixmult/src/matrixmult.cu
 	@mkdir -p build/.objects/matrixmult
-	$(NVCC) -pg $(NVCCFLAGS) -Xcompiler -fPIC -Imatrixmult/include -I$(SAMPLESPATH)/Common \
+	$(NVCC) -pg $(NVCCFLAGS) -Xcompiler -fPIC -Imatrixmult/include -I$(CUDAPATH)$(SAMPLESPATH) \
 		-dc -o build/.objects/matrixmult/matrixmult.o \
 		matrixmult/src/matrixmult.cu
 	$(NVCC) -pg $(NVCCFLAGS) $(NVCCARCHS) -Xcompiler -fPIC \
@@ -48,8 +54,8 @@ build/lib/libmatrixmult.so: matrixmult/src/matrixmult.cu
 build/bin/matrixmult_test: build/lib/libTimer.so build/lib/libmatrixmult.so \
 	matrixmult/test/src/test.cpp
 	@mkdir -p build/bin
-	$(CXX) -Ibuild/include -I$(SAMPLESPATH)/Common/inc \
-		-I$(CUDAPATH)/include -I$(SAMPLESPATH)/Common -ITimer/include \
+	$(CXX) -Ibuild/include -I$(CUDAPATH)$(SAMPLESPATH) \
+		-I$(CUDAPATH)/include -ITimer/include \
 		-o build/bin/matrixmult_test matrixmult/test/src/test.cpp \
 		-Wl,-rpath=$(PWD)/build/lib \
 		-Lbuild/lib -L$(CUDAPATH)/lib64 \

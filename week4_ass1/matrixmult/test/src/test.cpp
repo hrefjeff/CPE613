@@ -100,7 +100,7 @@ int main (int argc, char ** argv) {
     );
 
     // execute our matrix multiplication
-    int numOfRuns = 5000;
+    int numOfRuns = 100;
     double elapsedTime_ms = 0.0f;
     double total_elapsedTime_ms = 0.0f;
     Timer timer;
@@ -132,7 +132,7 @@ int main (int argc, char ** argv) {
         );
 
         // Display progress 
-        if (runCount % 100 == 0) {
+        if (runCount % 10 == 0) {
             cout << runCount << "/" << numOfRuns << "\r";
             cout.flush();
         }
