@@ -11,8 +11,8 @@ using namespace std;
 
 int main (int argc, char ** argv) {
   
-    // set a size for our vectors
-    int N = 1024;
+    // Set size for matrices
+    int N = 256;
     int VEC_SIZE = N*N;
 
     // allocate vectors x and y_reference
@@ -34,18 +34,8 @@ int main (int argc, char ** argv) {
     // };
     vector<float> matrix3(VEC_SIZE, 1.0);
 
-    /* Target output matrix with test data
-    ====================
-    1 | 30  | 24  | 18 |
-    ====================
-    2 | 84  | 69  | 54 |
-    ====================
-    3 | 138 | 114 | 90 |
-    ====================
-    */
-    
     // Provide arbitrary time value for random seed
-    // srand((unsigned) time(NULL));
+    srand((unsigned) time(NULL));
 
     // initialize the matrix1 and matrix2 to some arbitrary values
     for (int i=0; i<N; i++){
@@ -110,9 +100,10 @@ int main (int argc, char ** argv) {
     );
 
     // execute our matrix multiplication
-    int numOfRuns = 1000;
+    int numOfRuns = 5000;
     double elapsedTime_ms = 0.0f;
     double total_elapsedTime_ms = 0.0f;
+    Timer timer;
 
     double numberOfFlops = 2 * VEC_SIZE;
     double flopRate = 0.0f;
@@ -121,7 +112,6 @@ int main (int argc, char ** argv) {
     double numberOfWrites = VEC_SIZE;
     
     for (int runCount = 0; runCount < numOfRuns; runCount++) {
-        Timer timer;
         timer.start();
         matrixMultiplication(dev_A, dev_B, dev_C, N);
         timer.stop();
@@ -140,6 +130,12 @@ int main (int argc, char ** argv) {
                 cudaMemcpyDeviceToHost
             )
         );
+
+        // Display progress 
+        if (runCount % 100 == 0) {
+            cout << runCount << "/" << numOfRuns << "\r";
+            cout.flush();
+        }
     }
 
     double totalReads = 2 * VEC_SIZE * numOfRuns;
@@ -148,14 +144,14 @@ int main (int argc, char ** argv) {
 
     double avg_elapsedTime_ms = total_elapsedTime_ms / numOfRuns;
     double avg_flopRate = totalNumberOfFlops / (total_elapsedTime_ms / 1.0e3);
-    
+
     printf (
-    "\t- Avg Computational Rate:         %20.16e Gflops\n",
+    "\n\t- Avg Computational Rate:         %20.16e Gflops\n",
         avg_flopRate / 1e9 
     );
     double avg_effectiveBandwidth_bitspersec =
         (totalReads + totalWrites) * sizeof(float) * 8 / 
-        (avg_elapsedTime_ms / 1.0e3);
+        (total_elapsedTime_ms / 1.0e3);
     printf (
     "\t- Avg Effective Bandwidth:        %20.16e Gbps\n",
         avg_effectiveBandwidth_bitspersec / 1e9 
