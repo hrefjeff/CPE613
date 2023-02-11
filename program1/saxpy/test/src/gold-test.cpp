@@ -8,9 +8,6 @@
 #include <cstdio>
 #include <vector>
 
-#include <typeinfo>
-#include <iostream>
-
 // let the compiler know we want to use C style naming and
 // calling conventions for the Fortran function
 //
@@ -41,23 +38,22 @@ int main (int argc, char ** argv) {
   int incy = 1;
   
   // set a size for our vectors
-  int n = 10000000;
+  int VEC_SIZE = 10000000;
 
   // allocate vectors x and y_reference
   std::vector<float> x (
-    n * incx,
+    VEC_SIZE * incx,
     0.0f
   );
   std::vector<float> y_reference (
-    n * incy,
+    VEC_SIZE * incy,
     0.0f
   );
 
-  // initialize the vectors x and y to some arbitrary values,
-  // ideally student submissions should be random
-  for (int idx = 0; idx < n; ++idx) {
-    x[idx * incx] = idx;
-    y_reference[idx * incy] = n - idx;
+  // initialize the vectors x and y to some arbitrary values
+  for (int idx = 0; idx < VEC_SIZE; ++idx) {
+    x[idx * incx] = rand() % 1000;
+    y_reference[idx * incy] = x[idx * incx];
   }
 
   // allocate device memory
@@ -105,7 +101,7 @@ int main (int argc, char ** argv) {
   //  - note that we pre-declared the name the Fortran compiler produced above
   //    (add a trailing underscore to the function name) 
   saxpy_ (
-    &n,
+    &VEC_SIZE,
     &alpha,
     x.data(),
     &incx,
@@ -113,51 +109,28 @@ int main (int argc, char ** argv) {
     &incy  
   );
   
-  // should get an average runtime over many runs instead of the single one here
+  // Begin saxpy kernel, run it multiple times. print result
 
   // start the timer
   Timer timer;
   timer.start();
   // execute our saxpy
-
-  // run 1000 times
-  int numLoops = 1;
-//  for (int i = 0; i < nunmLoops; i++){
-
   saxpy (
-    n,
+    VEC_SIZE,
     alpha,
     dev_x,
     incx,
     dev_y_computed,
     incy  
   );
-//  }
-  // printf ( "\t- dev_x: %20.16d\n", dev_x[0] );
-printf ( "numLoops = %d\n", numLoops );
-//printf ("dev_x = %d")
- std::cout << typeid(dev_x).name();
-
-    saxpy (
-    n,
-    alpha,
-    dev_x,
-    incx,
-    dev_y_computed,
-    incy
-  );
-
-//  printf ( "\t- dev_x: %20.16d\n", dev_x[0] );
-
-
   timer.stop();
   
   // get elapsed time, estimated flops per second, and effective bandwidth
-  double elapsedTime_ms = timer.elapsedTime_ms() / numLoops;
-  double numberOfFlops = 2 * n;
+  double elapsedTime_ms = timer.elapsedTime_ms();
+  double numberOfFlops = 2 * VEC_SIZE;
   double flopRate = numberOfFlops / (elapsedTime_ms / 1.0e3);
-  double numberOfReads = 2 * n;
-  double numberOfWrites = n;
+  double numberOfReads = 2 * VEC_SIZE;
+  double numberOfWrites = VEC_SIZE;
   double effectiveBandwidth_bitspersec {
     (numberOfReads + numberOfWrites) * sizeof(float) * 8 / 
     (elapsedTime_ms / 1.0e3)
@@ -187,7 +160,7 @@ printf ( "numLoops = %d\n", numLoops );
   );
 
   double relerr = relative_error_l2 (
-    n,
+    VEC_SIZE,
     y_reference.data(),
     incy,
     y_computed.data(),
