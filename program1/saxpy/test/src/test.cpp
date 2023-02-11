@@ -34,7 +34,6 @@ double relative_error_l2 (
 
 int main (int argc, char ** argv) {
 
-
   // set values for the offset for x and y
   int incx = 1;
   int incy = 1;
@@ -58,7 +57,7 @@ int main (int argc, char ** argv) {
   // initialize the vectors x and y to some arbitrary values
   for (int idx = 0; idx < VEC_SIZE; ++idx) {
     x[idx * incx] = rand() % 1000;
-    y_reference[idx * incy] = x[idx * incx];
+    y_reference[idx * incy] = rand() % 1000;
   }
 
   // set values for the scalar
@@ -101,20 +100,23 @@ int main (int argc, char ** argv) {
     )
   );
 
+  int numOfRuns = 2;
+
   // call the Fortran version of the saxpy
   //  - note that we have to pass addresses of the nonpointer arguments
   //  - note that we pre-declared the name the Fortran compiler produced above
-  //    (add a trailing underscore to the function name) 
-  saxpy_ (
-    &VEC_SIZE,
-    &alpha,
-    x.data(),
-    &incx,
-    y_reference.data(),
-    &incy  
-  );
+  //    (add a trailing underscore to the function name)
+  for (int i = 0; i < numOfRuns; i++) {
+    saxpy_ (
+      &VEC_SIZE,
+      &alpha,
+      x.data(),
+      &incx,
+      y_reference.data(),
+      &incy  
+    );
+  }
 
-  int numOfRuns = 1;
   double elapsedTime_ms = 0.0f;
   double total_elapsedTime_ms = 0.0f;
 
@@ -123,7 +125,6 @@ int main (int argc, char ** argv) {
   double totalFlopRate = 0.0f;
   double numberOfReads = 2 * VEC_SIZE;
   double numberOfWrites = VEC_SIZE;
-  double totalRelErr = 0.0f;
   
   // Begin saxpy kernel, run it multiple times. print result
   for (int i = 0; i < numOfRuns; i++) {
@@ -145,64 +146,53 @@ int main (int argc, char ** argv) {
     elapsedTime_ms = timer.elapsedTime_ms();
     total_elapsedTime_ms += elapsedTime_ms;
 
-    // copy result down from device
-    vector<float> y_computed (
-      y_reference.size(),
-      0.0f  
-    );
-    checkCudaErrors (
-      cudaMemcpy (
-        y_computed.data(),
-        dev_y_computed,
-        byteSize_y_reference,
-        cudaMemcpyDeviceToHost
-      )
-    );
-
-    totalRelErr += relative_error_l2 (
-      VEC_SIZE,
-      y_reference.data(),
-      incy,
-      y_computed.data(),
-      incy
-    );
   }
 
   double totalNumberOfFlops = numberOfFlops * numOfRuns;
   double totalReads = numberOfReads * numOfRuns;
   double totalWrites = numberOfWrites * numOfRuns;
-
   double avg_elapsedTime_ms = total_elapsedTime_ms / numOfRuns;
+
   double avg_flopRate = totalNumberOfFlops / (total_elapsedTime_ms / 1.0e3);
+  double avg_effectiveBandwidth_bitspersec =
+      (totalReads + totalWrites) * sizeof(float) * 8 / 
+      (total_elapsedTime_ms / 1.0e3);
   
   printf (
    "\t- Computational Rate:         %20.16e Gflops\n",
     avg_flopRate / 1e9 
   );
-  double avg_effectiveBandwidth_bitspersec =
-      (totalReads + totalWrites) * sizeof(float) * 8 / 
-      (total_elapsedTime_ms / 1.0e3);
   printf (
    "\t- Effective Bandwidth:        %20.16e Gbps\n",
     avg_effectiveBandwidth_bitspersec / 1e9 
   );
 
   // output relative error
-  printf (
-    "\t- Relative Error (l2):        %20.16e\n",
-    totalRelErr
+  // copy result down from device
+  vector<float> y_computed (
+    y_reference.size(),
+    0.0f
+  );
+  checkCudaErrors (
+    cudaMemcpy (
+      y_computed.data(),
+      dev_y_computed,
+      byteSize_y_reference,
+      cudaMemcpyDeviceToHost
+    )
   );
 
-  if (totalRelErr < 1.0e-7) {
+  double err = relative_error_l2 (
+    VEC_SIZE,
+    y_reference.data(),
+    incy,
+    y_computed.data(),
+    incy
+  );
 
-    printf("\t- PASSED\n");
-
-  } 
-  else {
-
-    printf("\t-FAILED\n");
-
-  }
+  printf ("\t- Relative Error (l2):        %20.16e\n", err);
+  if (err < 1.0e-7) printf("\t- PASSED\n");
+  else printf("\t-FAILED\n");
 
   return 0;
 
