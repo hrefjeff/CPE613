@@ -8,6 +8,8 @@
 #include <cstdio>
 #include <vector>
 
+using namespace std;
+
 // let the compiler know we want to use C style naming and
 // calling conventions for the Fortran function
 //
@@ -41,11 +43,11 @@ int main (int argc, char ** argv) {
   int VEC_SIZE = 10000000;
 
   // allocate vectors x and y_reference
-  std::vector<float> x (
+  vector<float> x (
     VEC_SIZE * incx,
     0.0f
   );
-  std::vector<float> y_reference (
+  vector<float> y_reference (
     VEC_SIZE * incy,
     0.0f
   );
@@ -112,7 +114,7 @@ int main (int argc, char ** argv) {
     &incy  
   );
 
-  int numOfRuns = 10;
+  int numOfRuns = 1;
   double elapsedTime_ms = 0.0f;
   double total_elapsedTime_ms = 0.0f;
 
@@ -143,10 +145,8 @@ int main (int argc, char ** argv) {
     elapsedTime_ms = timer.elapsedTime_ms();
     total_elapsedTime_ms += elapsedTime_ms;
 
-    totalFlopRate += numberOfFlops / (elapsedTime_ms / 1.0e3);
-
     // copy result down from device
-    std::vector<float> y_computed (
+    vector<float> y_computed (
       y_reference.size(),
       0.0f  
     );
@@ -168,9 +168,9 @@ int main (int argc, char ** argv) {
     );
   }
 
-  double totalReads = 2 * VEC_SIZE * numOfRuns;
-  double totalWrites = VEC_SIZE * numOfRuns;
-  double totalNumberOfFlops = 2 * VEC_SIZE * numOfRuns;
+  double totalNumberOfFlops = numberOfFlops * numOfRuns;
+  double totalReads = numberOfReads * numOfRuns;
+  double totalWrites = numberOfWrites * numOfRuns;
 
   double avg_elapsedTime_ms = total_elapsedTime_ms / numOfRuns;
   double avg_flopRate = totalNumberOfFlops / (total_elapsedTime_ms / 1.0e3);
