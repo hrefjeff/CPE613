@@ -9,13 +9,19 @@ CCFLAGS=-std=c11
 CXXFLAGS=-std=c++11 -O4
 NVCCFLAGS=-std=c++11
 
-NVCCARCHS=-gencode arch=compute_86,code=sm_86
+NVCCARCHS=-gencode arch=compute_80,code=sm_80 -gencode arch=compute_70,code=sm_70
 
 TIMERINCPATH=-I$(CUDAPATH)/include -ITimer/include
 INCPATH=-Isaxpy/include -I$(CUDAPATH)/include -I$(CUDAPATH)/samples/common/inc -I$(GTESTPATH)/include
 LIBPATH=-L$(CUDAPATH)/lib64 -L$(GTESTPATH)/lib64
 RPATH=-Wl,-rpath=`pwd`/build/lib -Wl,-rpath=`pwd`/$(GTESTPATH)/lib64 -Wl,-rpath=`pwd`/$(CUDAPATH)/lib64
 LIBS=-lcudart
+
+# ------- On the DMC, run this to avoid having to type in all the parameters
+# echo -ne "gpu\n1\n\n10gb\n1\nampere\nsaxpy_test\n" | run_gpu build/bin/saxpy_test > /dev/null
+
+# Sometimes the blas lib can't be found, add this to the shared library path
+# LD_LIBRARY_PATH=/opt/asn/apps/blas_gcc610_avx/lib:$LD_LIBRARY_PATH
 
 .PHONY: clean
 
@@ -37,7 +43,7 @@ build/lib/libsaxpy.so: saxpy/src/saxpy.cu
 	$(NVCC) -pg $(NVCCFLAGS) $(NVCCARCHS) -Xcompiler -fPIC \
 		-Isaxpy/include -I$(CUDAPATH)/samples/common/inc \
 		-dc -o build/.objects/saxpy/saxpy.o \
-		saxpy/src/saxpy.cu
+		saxpy/src/saxpy_gc_occ.cu
 	$(NVCC) -pg $(NVCCFLAGS) $(NVCCARCHS) -Xcompiler -fPIC \
 		-dlink -o build/.objects/saxpy/saxpy-dlink.o build/.objects/saxpy/saxpy.o
 	mkdir -p build/lib
@@ -49,7 +55,7 @@ build/lib/libsaxpy.so: saxpy/src/saxpy.cu
 build/bin/saxpy_test: build/lib/libTimer.so build/lib/libsaxpy.so \
 	saxpy/test/src/test.cpp
 	@mkdir -p build/bin
-	$(CXX) -Ibuild/include -I$(CUDAPATH)/samples/common/inc \
+	$(CXX) -Ibuild/include -I$(CUDAPATH)/samples/common/inc -I$(BLASPATH) \
 		-ITimer/include -Isaxpy/include \
 		-o build/bin/saxpy_test saxpy/test/src/test.cpp \
 		-Wl,-rpath=$(PWD)/build/lib \
