@@ -2,7 +2,7 @@ CC=gcc
 CXX=g++
 NVCC=nvcc
 
-#BLASPATH=/opt/asn/apps/blas_gcc610_avx
+BLASPATH=/opt/asn/apps/blas_gcc610_avx
 # Local Machine
 #CUDAPATH=/usr/local/cuda-12.0
 #SAMPLESPATH=/cuda-samples/Common
@@ -18,7 +18,7 @@ CXXFLAGS=-std=c++11 -O4
 NVCCFLAGS=-std=c++11
 
 #NVCCARCHS=-gencode arch=compute_86,code=sm_86 # Local Machine
-#NVCCARCHS=-gencode arch=compute_80,code=sm_80 -gencode arch=compute_70,code=sm_70 # Alabama ASC
+NVCCARCHS=-gencode arch=compute_80,code=sm_80 -gencode arch=compute_70,code=sm_70 # Alabama ASC
 
 INCPATH=-Imatrixmult/include -I$(CUDAPATH)/include -I$(GTESTPATH)/include
 LIBPATH=-L$(CUDAPATH)/lib64 -L$(GTESTPATH)/lib64
@@ -56,12 +56,12 @@ build/lib/libmatrixmult.so: matrixmult/src/matrixmult.cu
 build/bin/matrixmult_test: build/lib/libTimer.so build/lib/libmatrixmult.so \
 	matrixmult/test/src/test.cpp
 	@mkdir -p build/bin
-	$(CXX) -Ibuild/include -I$(CUDAPATH)$(SAMPLESPATH) \
+	$(CXX) -Ibuild/include -I$(CUDAPATH)$(SAMPLESPATH) -I$(BLASPATH) \
 		-I$(CUDAPATH)/include -ITimer/include \
 		-o build/bin/matrixmult_test matrixmult/test/src/test.cpp \
 		-Wl,-rpath=$(PWD)/build/lib \
 		-Lbuild/lib -L$(CUDAPATH)/lib64 \
-		-lTimer -lmatrixmult -lcudart
+		-lTimer -lmatrixmult -lcudart  -lblas -lgfortran
 
 clean:
 	rm -rf build
