@@ -4,12 +4,14 @@ NVCC=nvcc
 
 #BLASPATH=/opt/asn/apps/blas_gcc610_avx
 # Local Machine
-CUDAPATH=/usr/local/cuda-12.0
-SAMPLESPATH=/cuda-samples/Common
+#CUDAPATH=/usr/local/cuda-12.0
+#SAMPLESPATH=/cuda-samples/Common
 
 # Alabama ASC
-#CUDAPATH=/opt/asn/apps/cuda_11.7.0
-#SAMPLESPATH=/samples/common/inc
+CUDAPATH=/opt/asn/apps/cuda_11.7.0
+SAMPLESPATH=/samples/common/inc
+# ------- On the DMC, run this to avoid having to type in all the parameters
+# echo -ne "gpu\n1\n\n10gb\n1\nampere\nmatrixmult_test\n" | run_gpu build/bin/matrixmult_test > /dev/null
 
 CCFLAGS=-std=c11
 CXXFLAGS=-std=c++11 -O4
