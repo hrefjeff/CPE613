@@ -1,5 +1,5 @@
 #include <matrixmult.h>
-#define TILE_WIDTH 32
+#define TILE_DIM 32
 
 __global__ void tiledMatrixMultiplication_kernel (
     float* A,

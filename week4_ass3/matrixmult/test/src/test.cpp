@@ -15,7 +15,7 @@ int main (int argc, char ** argv) {
   
     // Set size for matrices
     // 64, 128, 256, 512, 1024, 2048, 4096
-    int N = 1024;
+    int N = 4096;
     int VEC_SIZE = N*N;
 
     // allocate vectors x and y_reference
@@ -103,7 +103,7 @@ int main (int argc, char ** argv) {
     );
 
     // execute our matrix multiplication
-    int numOfRuns = 1000;
+    int numOfRuns = 100;
 
     double elapsedTime_ms = 0.0f;
     double total_elapsedTime_ms = 0.0f;
@@ -132,9 +132,9 @@ int main (int argc, char ** argv) {
         total_elapsedTime_ms += elapsedTime_ms;
     }
 
-    double totalReads = 2 * VEC_SIZE * numOfRuns;
+    double totalReads = 2.0 * VEC_SIZE * numOfRuns;
     double totalWrites = VEC_SIZE * numOfRuns;
-    double totalNumberOfFlops = 2 * VEC_SIZE * numOfRuns;
+    double totalNumberOfFlops = 2.0 * N*N*N * numOfRuns;
 
     double avg_elapsedTime_ms = total_elapsedTime_ms / numOfRuns;
     double avg_flopRate = totalNumberOfFlops / (total_elapsedTime_ms / 1.0e3);

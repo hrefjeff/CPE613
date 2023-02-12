@@ -12,7 +12,7 @@ using namespace std;
 int main (int argc, char ** argv) {
   
     // Set size for matrices
-    int N = 64;
+    int N = 4096;
     int VEC_SIZE = N*N;
 
     // allocate vectors x and y_reference
@@ -40,8 +40,8 @@ int main (int argc, char ** argv) {
     // initialize the matrix1 and matrix2 to some arbitrary values
     for (int i=0; i<N; i++){
         for (int j=0; j<N; j++){
-            matrix1[i*N+j] = rand() % 10;
-            matrix2[i*N+j] = rand() % 10;
+            matrix1[i*N+j] = rand() % 1000;
+            matrix2[i*N+j] = rand() % 1000;
             matrix3[i*N+j] = 0;
         }
     }
@@ -100,13 +100,13 @@ int main (int argc, char ** argv) {
     );
 
     // execute our matrix multiplication
-    int numOfRuns = 1000;
-    double elapsedTime_ms = 0.0f;
-    double total_elapsedTime_ms = 0.0f;
+    int numOfRuns = 100;
+    double elapsedTime_ms = 0.0;
+    double total_elapsedTime_ms = 0.0;
 
     double numberOfFlops = 2 * VEC_SIZE;
-    double flopRate = 0.0f;
-    double totalFlopRate = 0.0f;
+    double flopRate = 0.0;
+    double totalFlopRate = 0.0;
     double numberOfReads = 2 * VEC_SIZE;
     double numberOfWrites = VEC_SIZE;
     
@@ -121,9 +121,22 @@ int main (int argc, char ** argv) {
         total_elapsedTime_ms += elapsedTime_ms;
     }
 
-    double totalReads = 2 * VEC_SIZE * numOfRuns;
+    double totalReads = 2.0 * VEC_SIZE * numOfRuns;
     double totalWrites = VEC_SIZE * numOfRuns;
-    double totalNumberOfFlops = 2 * VEC_SIZE * numOfRuns;
+    double totalNumberOfFlops = 2.0 * N*N*N * numOfRuns;
+
+    printf (
+    "\n\t- VECSIZE: %d           \n",
+        VEC_SIZE
+    );
+    printf (
+    "\n\t- numOfRuns: %d           \n",
+        numOfRuns
+    );
+    printf (
+    "\n\t- total # of flops: %20.16e   \n",
+        totalNumberOfFlops
+    );
 
     double avg_elapsedTime_ms = total_elapsedTime_ms / numOfRuns;
     double avg_flopRate = totalNumberOfFlops / (total_elapsedTime_ms / 1.0e3);
@@ -144,16 +157,16 @@ int main (int argc, char ** argv) {
         avg_effectiveBandwidth_bitspersec / 1e9 
     );
 
-    checkCudaErrors (
-        cudaMemcpy (
-            matrix3.data(),
-            dev_C,
-            byteSize_C,
-            cudaMemcpyDeviceToHost
-        )
-    );
+    // checkCudaErrors (
+    //     cudaMemcpy (
+    //         matrix3.data(),
+    //         dev_C,
+    //         byteSize_C,
+    //         cudaMemcpyDeviceToHost
+    //     )
+    // );
 
-    // Print C
+    // // Print C
     // for (int i=0; i<N; i++){
     //     for (int j=0; j<N; j++){
     //         cout << matrix3[i*N+j] << " ";
@@ -186,6 +199,10 @@ int main (int argc, char ** argv) {
 
     // if (err) cout << "ERROR: The two matricies do not match!!!" << endl;
     // else cout << "SUCCESS: Woo! The matricies match." << endl;
+
+    checkCudaErrors(cudaFree(dev_A));
+    checkCudaErrors(cudaFree(dev_B));
+    checkCudaErrors(cudaFree(dev_C));
 
     return 0;
 
