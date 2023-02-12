@@ -2,38 +2,28 @@
 #define TILE_WIDTH 32
 
 __global__ void tiledMatrixMultiplication_kernel (
-    float* M,
-    float* N,
-    float* P,
-    int Width
+    float* A,
+    float* B,
+    float* C,
+    int N
 ) {
-    // Create arrays that are local to each block
-    __shared__ float Mds[TILE_WIDTH][TILE_WIDTH];
-    __shared__ float Nds[TILE_WIDTH][TILE_WIDTH];
-
-    int bx = blockIdx.x;  int by = blockIdx.y;
-    int tx = threadIdx.x; int ty = threadIdx.y;
-
-    // Identify the row and column of the P element to work on
-    int Row = by * TILE_WIDTH + ty;
-    int Col = bx * TILE_WIDTH + tx;
-
-    // Loop over the M and N tiles required to compute P element
-    float Pvalue = 0.0f;
-    for (int ph = 0; ph < Width/TILE_WIDTH; ++ph) {
-
-        // Colaborative loading of M and N tiles into shared memory
-        Mds[ty][tx] = M[Row*Width + ph*TILE_WIDTH + tx];
-        Nds[ty][tx] = N[(ph*TILE_WIDTH + ty)*Width + Col];
+    __shared__ float A_s[TILE_DIM][TILE_DIM];
+    __shared__ float B_s[TILE_DIM][TILE_DIM];
+    unsigned int row = blockIdx.y*blockDim.y + threadIdx.y;
+    unsigned int col = blockIdx.x*blockDim.x + threadIdx.x;
+    float sum = 0.0f;
+    for(unsigned int tile = 0; tile < N/TILE_DIM; ++tile) {
+        // Load tile to shared memory
+        A_s[threadIdx.y][threadIdx.x] = A[row*N + tile*TILE_DIM + threadIdx.x];
+        B_s[threadIdx.y][threadIdx.x] = B[(tile*TILE_DIM + threadIdx.y)*N + col];
         __syncthreads();
-
-        for (int k = 0; k < TILE_WIDTH; ++k) {
-            Pvalue += Mds[ty][k] * Nds[k][tx];
+        // Compute with tile
+        for(unsigned int i = 0; i < TILE_DIM; ++i) {
+            sum += A_s[threadIdx.y][i]*B_s[i][threadIdx.x];
         }
         __syncthreads();
-
     }
-    P[Row*Width + Col] = Pvalue;
+    C[row*N + col] = sum;
 }
 
 __global__ void matrixMultiplication_kernel(

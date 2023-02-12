@@ -12,39 +12,39 @@ using namespace std;
 int main (int argc, char ** argv) {
   
     // Set size for matrices
-    int N = 2;
+    int N = 64;
     int VEC_SIZE = N*N;
 
     // allocate vectors x and y_reference
     
-    //vector<float> matrix1(VEC_SIZE, 1.0);
-    vector<float> matrix1 {
-        1.0, 2.0, 3.0, 4.0,
-        5.0, 6.0, 7.0, 8.0, 
-        9.0, 10.0, 11.0, 12.0,
-        13.0, 14.0, 15.0, 16.0
-    };
+    vector<float> matrix1(VEC_SIZE, 1.0);
+    // vector<float> matrix1 {
+    //     1.0, 2.0, 3.0, 4.0,
+    //     5.0, 6.0, 7.0, 8.0, 
+    //     9.0, 10.0, 11.0, 12.0,
+    //     13.0, 14.0, 15.0, 16.0
+    // };
     
-    //vector<float> matrix2(VEC_SIZE, 1.0);
-    vector<float> matrix2 {
-        16.0, 15.0, 14.0, 13.0,
-        12.0, 11.0, 10.0, 9.0,
-        8.0, 7.0, 6.0, 5.0,
-        4.0, 3.0, 2.0, 1.0
-    };
+    vector<float> matrix2(VEC_SIZE, 1.0);
+    // vector<float> matrix2 {
+    //     16.0, 15.0, 14.0, 13.0,
+    //     12.0, 11.0, 10.0, 9.0,
+    //     8.0, 7.0, 6.0, 5.0,
+    //     4.0, 3.0, 2.0, 1.0
+    // };
     vector<float> matrix3(VEC_SIZE, 1.0);
 
     // Provide arbitrary time value for random seed
-    // srand((unsigned) time(NULL));
+    srand((unsigned) time(NULL));
 
-    // // initialize the matrix1 and matrix2 to some arbitrary values
-    // for (int i=0; i<N; i++){
-    //     for (int j=0; j<N; j++){
-    //         matrix1[i*N+j] = rand() % 10;
-    //         matrix2[i*N+j] = rand() % 10;
-    //         matrix3[i*N+j] = 0;
-    //     }
-    // }
+    // initialize the matrix1 and matrix2 to some arbitrary values
+    for (int i=0; i<N; i++){
+        for (int j=0; j<N; j++){
+            matrix1[i*N+j] = rand() % 10;
+            matrix2[i*N+j] = rand() % 10;
+            matrix3[i*N+j] = 0;
+        }
+    }
 
     // Print A
     // for (int i=0; i<N; i++){
@@ -100,7 +100,7 @@ int main (int argc, char ** argv) {
     );
 
     // execute our matrix multiplication
-    int numOfRuns = 5;
+    int numOfRuns = 1000;
     double elapsedTime_ms = 0.0f;
     double total_elapsedTime_ms = 0.0f;
 
@@ -144,14 +144,14 @@ int main (int argc, char ** argv) {
         avg_effectiveBandwidth_bitspersec / 1e9 
     );
 
-    // checkCudaErrors (
-    //     cudaMemcpy (
-    //         matrix3.data(),
-    //         dev_C,
-    //         byteSize_C,
-    //         cudaMemcpyDeviceToHost
-    //     )
-    // );
+    checkCudaErrors (
+        cudaMemcpy (
+            matrix3.data(),
+            dev_C,
+            byteSize_C,
+            cudaMemcpyDeviceToHost
+        )
+    );
 
     // Print C
     // for (int i=0; i<N; i++){
@@ -184,8 +184,8 @@ int main (int argc, char ** argv) {
     //     }
     // }
 
-    if (err) cout << "ERROR: The two matricies do not match!!!" << endl;
-    else cout << "SUCCESS: Woo! The matricies match." << endl;
+    // if (err) cout << "ERROR: The two matricies do not match!!!" << endl;
+    // else cout << "SUCCESS: Woo! The matricies match." << endl;
 
     return 0;
 

@@ -1,5 +1,5 @@
 #include <matrixmult.h>
-#define TILE_DIM 2
+#define TILE_DIM 32
 
 __global__ void tiledMatrixMultiplication_kernel (
     float* A,
@@ -55,7 +55,7 @@ void matrixMultiplication (
   int N
 ) {
 
-    int numOfThreads = 2;
+    int numOfThreads = 32;
     int numOfBlocks = (N + numOfThreads - 1) / numOfThreads;
 
     // Set up kernel launch parameters, so we can create grid/blocks

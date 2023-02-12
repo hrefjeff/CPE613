@@ -111,7 +111,6 @@ int main (int argc, char ** argv) {
 
     double numberOfFlops = 2 * VEC_SIZE;
     double flopRate = 0.0f;
-    double totalFlopRate = 0.0f;
     double numberOfReads = 2 * VEC_SIZE;
     double numberOfWrites = VEC_SIZE;
 
@@ -131,8 +130,6 @@ int main (int argc, char ** argv) {
         // get elapsed time, estimated flops per second, and effective bandwidth
         elapsedTime_ms = timer.elapsedTime_ms();
         total_elapsedTime_ms += elapsedTime_ms;
-
-        totalFlopRate += numberOfFlops / (elapsedTime_ms / 1.0e3);
     }
 
     double totalReads = 2 * VEC_SIZE * numOfRuns;
