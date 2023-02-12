@@ -11,7 +11,7 @@ BLASPATH=/opt/asn/apps/blas_gcc610_avx
 CUDAPATH=/opt/asn/apps/cuda_11.7.0
 SAMPLESPATH=/samples/common/inc
 # ------- On the DMC, run this to avoid having to type in all the parameters
-# echo -ne "gpu\n1\n\n10gb\n1\nampere\nmatrixmult_test\n" | run_gpu build/bin/matrixmult_test > /dev/null
+# echo -ne "gpu\n1\n\n10gb\n1\nampere\nmm_test\n" | run_gpu build/bin/matrixmult_test > /dev/null
 
 CCFLAGS=-std=c11
 CXXFLAGS=-std=c++11 -O4
@@ -67,3 +67,4 @@ clean:
 	rm -rf build
 	rm -f *nsys-rep
 	rm -f matrixmult_test.*
+	rm -f mm_test.*
