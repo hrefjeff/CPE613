@@ -39,7 +39,7 @@ int main (int argc, char ** argv) {
     // Provide arbitrary time value for random seed
     // srand((unsigned) time(NULL));
 
-    // // initialize the matrix1 and matrix2 to some arbitrary values
+    // // // initialize the matrix1 and matrix2 to some arbitrary values
     // for (int i=0; i<N; i++){
     //     for (int j=0; j<N; j++){
     //         matrix1[i*N+j] = rand() % 100;
@@ -101,34 +101,8 @@ int main (int argc, char ** argv) {
         )
     );
 
-    // execute reference matrix multiplication using cuBLAS
-    cublasHandle_t handle;
-    cublasCreate(&handle);
-    float alpha = 1.0;
-    float beta = 0.0;
-    cublasSgemm(handle, CUBLAS_OP_N, CUBLAS_OP_N, N, N, N, &alpha, dev_B, N, dev_A, N, &beta, dev_C, N);
-    cublasDestroy(handle);
-    
-    checkCudaErrors (
-        cudaMemcpy (
-            matrix3.data(),
-            dev_C,
-            byteSize_C,
-            cudaMemcpyDeviceToHost
-        )
-    );
-
-    cout << "==== cuBlas Calcuated Matrix ====" << endl;
-
-    for (int i=0; i<N; i++){
-        for (int j=0; j<N; j++){
-            cout << matrix3[i*N+j] << " ";
-        }
-        cout << endl << endl;
-    }
-
     // execute our matrix multiplication
-    int numOfRuns = 100;
+    int numOfRuns = 1;
 
     double elapsedTime_ms = 0.0f;
     double total_elapsedTime_ms = 0.0f;
@@ -139,32 +113,25 @@ int main (int argc, char ** argv) {
     double totalFlopRate = 0.0f;
     double numberOfReads = 2 * VEC_SIZE;
     double numberOfWrites = VEC_SIZE;
+
+    float alpha = 1.0;
+    float beta = 0.0;
     
     for (int runCount = 0; runCount < numOfRuns; runCount++) {
+        // execute reference matrix multiplication using cuBLAS
+        cublasHandle_t handle;
+        cublasCreate(&handle);
         timer.start();
-        matrixMultiplication(dev_A, dev_B, dev_C, N);
+        cublasSgemm(handle, CUBLAS_OP_N, CUBLAS_OP_N, N, N, N, &alpha, dev_B, N, dev_A, N, &beta, dev_C, N);
+        //matrixMultiplication(dev_A, dev_B, dev_C, N);
         timer.stop();
+        cublasDestroy(handle);
 
         // get elapsed time, estimated flops per second, and effective bandwidth
         elapsedTime_ms = timer.elapsedTime_ms();
         total_elapsedTime_ms += elapsedTime_ms;
 
         totalFlopRate += numberOfFlops / (elapsedTime_ms / 1.0e3);
-
-        checkCudaErrors (
-            cudaMemcpy (
-                matrix3.data(),
-                dev_C,
-                byteSize_C,
-                cudaMemcpyDeviceToHost
-            )
-        );
-
-        // Display progress 
-        if (runCount % 10 == 0) {
-            cout << runCount << "/" << numOfRuns << "\r";
-            cout.flush();
-        }
     }
 
     double totalReads = 2 * VEC_SIZE * numOfRuns;
@@ -186,13 +153,22 @@ int main (int argc, char ** argv) {
         avg_effectiveBandwidth_bitspersec / 1e9 
     );
 
+    checkCudaErrors (
+        cudaMemcpy (
+            matrix3.data(),
+            dev_C,
+            byteSize_C,
+            cudaMemcpyDeviceToHost
+        )
+    );
+
     // Print C
-    // for (int i=0; i<N; i++){
-    //     for (int j=0; j<N; j++){
-    //         cout << matrix3[i*N+j] << " ";
-    //     }
-    //     cout << endl << endl;
-    // }
+    for (int i=0; i<N; i++){
+        for (int j=0; j<N; j++){
+            cout << matrix3[i*N+j] << " ";
+        }
+        cout << endl << endl;
+    }
 
     // Now do the matrix multiplication on the CPU
 
