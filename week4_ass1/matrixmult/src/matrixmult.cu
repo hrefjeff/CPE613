@@ -62,7 +62,7 @@ void matrixMultiplication (
     dim3 blockSize(numOfThreads, numOfThreads);
     dim3 gridSize(numOfBlocks, numOfBlocks);
 
-    tiledMatrixMultiplication_kernel<<<gridSize, blockSize>>> (dev_A, dev_B, dev_C, N); 
+    matrixMultiplication_kernel<<<gridSize, blockSize>>> (dev_A, dev_B, dev_C, N); 
   
     checkCudaErrors(cudaGetLastError());
 }

@@ -12,7 +12,8 @@ using namespace std;
 int main (int argc, char ** argv) {
   
     // Set size for matrices
-    int N = 4096;
+    // 64, 128, 256, 512, 1024, 2048, 4096
+    int N = 64;
     int VEC_SIZE = N*N;
 
     // allocate vectors x and y_reference
