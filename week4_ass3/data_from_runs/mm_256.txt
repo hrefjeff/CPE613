@@ -1,0 +1,27 @@
+setting dmc scratch directory
+ 
+============================================================
+=====         Summary of your GPU job                  =====
+============================================================
+  The script file is: build/bin/matrixmult_test
+  The time limit is 01:00:00 HH:MM:SS.
+  The target directory is: /home/uahclsc0002/CPE613/week4_ass3
+  The working directory is:  /scratch-local/uahclsc0002.mm_test.930128
+  The memory limit is: 10gb
+  The job will start running after: 2023-02-12T18:06:38
+  Job Name: mm_test
+  Virtual queue: gpu
+  QOS: --qos=gpu
+  Constraints: 
+  Using  1  cores on master node  dmc203
+  Node list:  dmc203
+  Nodes:  dmc203
+  Command typed:
+/apps/scripts/run_gpu build/bin/matrixmult_test     
+  Queue submit command:
+sbatch --qos=gpu -J mm_test --begin=2023-02-12T18:06:38 --requeue --mail-user=ja0081@uah.edu -o mm_test.o930128 -t 01:00:00 --gres=gpu:ampere:1 -N 1-1 -n 1 --mem-per-cpu=10000mb  
+ 
+Assigning GPU 3 to this job.
+
+	- Avg Computational Rate:         9.5983890803999350e+02 Gflops
+	- Avg Effective Bandwidth:        1.7996979525749879e+02 Gbps
