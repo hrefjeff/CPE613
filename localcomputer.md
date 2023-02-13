@@ -10,6 +10,14 @@ https://docs.nvidia.com/cuda/wsl-user-guide/index.html This documentation got me
 
 https://www.youtube.com/watch?v=1HGBk78BqR4 Helpful article to get debugger for WSL
 
+```sh
+LD_LIBRARY_PATH=/usr/local/cuda-11.7/lib64:$LD_LIBRARY_PATH
+```
+
+## To Uninstall
+
+To uninstall the CUDA Toolkit, run cuda-uninstaller in /usr/local/cuda-11.7/bin
+
 ## Include Paths
 
 ```sh
