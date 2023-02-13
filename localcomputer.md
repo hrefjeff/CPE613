@@ -25,4 +25,8 @@ CUDAPATH=/usr/local/cuda-12.0
 SAMPLESPATH=/home/jeff/code/cuda-samples/Common
 ```
 
+```sh
+git clone https://github.com/nvidia/cuda-samples
+```
+
 If "cuda_helper.h" can't be found, update the code with the SAMPLESPATH
