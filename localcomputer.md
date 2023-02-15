@@ -32,3 +32,7 @@ git clone https://github.com/nvidia/cuda-samples
 ```
 
 
+# Windows
+
+Windows Visual Studio 2022 can run the CUDA debugger on my laptop. WSL cannot and doesn't have support for it.
+Using the cuda examples I was able to stop the program on kernel launch and switch focus' to view variable info in a specific thread
