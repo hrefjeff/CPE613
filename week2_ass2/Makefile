@@ -1,4 +1,4 @@
-LOCALSAMPLESPATH=/home/jeff/code/cuda-samples/Common
+LOCALSAMPLESPATH=/usr/local/cuda-12.0/cuda-samples/Common
 ASCSAMPLESPATH=/opt/asn/apps/cuda_11.7.0/samples/common/inc
 
 main: deviceQuery.cpp
