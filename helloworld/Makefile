@@ -2,8 +2,8 @@
 
 LOCSAMPLESPATH=/usr/local/cuda/cuda-samples/Common
 
-main: main.cpp
-	nvcc -o main -I$(LOCSAMPLESPATH) main.cpp
+main:
+	nvcc -o tgb.o -I$(LOCSAMPLESPATH) threadgridblock.cu
 
 clean:
-	rm -f main mainGPU.*
+	rm -f main mainGPU.* tgb.o
