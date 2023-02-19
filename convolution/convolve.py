@@ -14,13 +14,13 @@ def main():
     start = timeit.default_timer()
     np.convolve(arr1,arr2)
     end = timeit.default_timer() - start
-    print("Numpy convolve time difference is :", end)
+    print(f'Numpy convolve time is {end:.1f} ms')
 
     # Time the scipy fftconvolve
     start = timeit.default_timer()
     sp.signal.fftconvolve(arr1,arr2)
     end = timeit.default_timer() - start
-    print("Scipy fttconvolve time difference is :", end)
+    print(f'Scipy fttconvolve time is {end:.1f} ms')
 
     # Check small data set that I know is correct
     # Should produce [4, 13, 28, 27, 18]
