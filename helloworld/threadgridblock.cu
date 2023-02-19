@@ -10,6 +10,13 @@ using namespace std;
     For a total of 12 threads
     |      0        |       1       |       2       |
     | 0 | 1 | 2 | 3 | 0 | 1 | 2 | 3 | 0 | 1 | 2 | 3 |
+
+    To calculate the block offset, need to multiply blockIdx.x
+    with the total number of threads in the block.
+    blockIdx.x * blockDim.x
+    0 * 4 starts at index 0
+    1 * 4 starts at index 4
+    2 * 4 starts at index 8
 */
 
 /**
