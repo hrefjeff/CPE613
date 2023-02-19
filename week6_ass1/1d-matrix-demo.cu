@@ -40,8 +40,14 @@ __global__ void preVolta_kernel(float* input, float* output, int n)
 
 __global__ void postVolta_kernel(float* input, float* output, int n)
 {
-    int tid = threadIdx.x + blockIdx.x * blockDim.x;
-    int stride = blockDim.x * gridDim.x;
+
+    int tx = threadIdx.x; // thread id
+    int bx = blockIdx.x;  // block id
+    int bd = blockDim.x;  // num of threads in block
+    int gd = gridDim.x;   // num of blocks in grid
+
+    int tid = tx + bx * bd;
+    int stride = bd * gd;
     
     if (tid < 16) sleep(5000);
 
