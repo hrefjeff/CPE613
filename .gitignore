@@ -4,3 +4,6 @@
 build
 .vscode
 main
+
+#
+env/
