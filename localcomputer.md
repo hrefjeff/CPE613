@@ -31,6 +31,12 @@ If "cuda_helper.h" can't be found, update the code with the SAMPLESPATH. If we d
 git clone https://github.com/nvidia/cuda-samples
 ```
 
+# Python
+
+```sh
+# To get pip installed for python3
+curl https://bootstrap.pypa.io/get-pip.py | sudo python3
+```
 
 # Windows
 
