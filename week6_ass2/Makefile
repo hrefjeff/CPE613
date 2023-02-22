@@ -1,5 +1,6 @@
 # https://geeksww.com/tutorials/libraries/libpng/installation/installing_libpng_on_ubuntu_linux.php
 # Update rpath to where you download it
+# https://linuxhint.com/install-opencv-ubuntu/ install opencv
 
 CUDAPATH=/usr/local/cuda-12.0
 SAMPLESPATH=/cuda-samples/Common
