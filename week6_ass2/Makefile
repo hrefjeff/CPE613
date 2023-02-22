@@ -7,7 +7,7 @@ OPENCVPATH=/usr/local/include/opencv4
 SHAREDLIBS=/usr/local/lib
 
 main: color2gray.cu
-	nvcc -std=c++11 -o jeffc2g color2gray.cu \
+	nvcc -std=c++11 -o c2g.o color2gray.cu \
 	-I$(CUDAPATH)$(SAMPLESPATH) \
 	-I$(OPENCVPATH) \
 	-L$(SHAREDLIBS) \

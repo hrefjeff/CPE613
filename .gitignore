@@ -5,5 +5,8 @@ build
 .vscode
 main
 
-#
+# Don't include virtual env
 env/
+
+# Don't track output files that this project makes
+grayboiz.jpg
