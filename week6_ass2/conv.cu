@@ -38,33 +38,36 @@ void rgb2gray_kernel (
 
 }
 
-__global__ void conv_2D_basic_kernel (float* N, float* F, float *P, int r, int width, int height)
-{
+__global__
+void conv_2D_basic_kernel (
+    float* N, float* F, float* P, int r, int width, int height
+) {
     int outCol = blockIdx.x*blockDim.x + threadIdx.x;
     int outRow = blockIdx.y*blockDim.y + threadIdx.y;
     
     float Pvalue = 0.0f;
+    int radius = 2 * r + 1;
     
-    for (int fRow = 0; fRow < 2*r+1; fRow++) {
-        for (int fCol = 0; fCol < 2*r+1; fCol++) {
-            inRow = outRow - r + fRow;
-            inCol = outCol - r + fCol;
+    for (int fRow = 0; fRow < radius; fRow++) {
+        for (int fCol = 0; fCol < radius; fCol++) {
+            int inRow = outRow - r + fRow;
+            int inCol = outCol - r + fCol;
             if (inRow >= 0 && inRow < height && inCol >= 0 && inCol < width) {
-                Pvalue += F[fRow][fCol]*N[inRow*width + inCol];
+                Pvalue += F[fRow*width+fCol] * N[inRow*width + inCol];
             }
         }
     }
-    P[outRow][outCol] = Pvalue;
+    P[outRow*width+outCol] = Pvalue;
 }
 
-void device_rgb2grayscale (
-    unsigned char * deviceRed,
-    unsigned char * deviceGreen,
-    unsigned char * deviceBlue,
-    unsigned char * deviceGray,
+void convolution (
+    float* inputMatrix,
+    float* convMatrix,
+    float* outputMatrix,
+    int radius,
     int numRows,
     int numCols
-){
+) {
     int blockWidth = 16;
 
     // Set up kernel launch parameters, so we can create grid/blocks
@@ -75,14 +78,14 @@ void device_rgb2grayscale (
     );
 
     // Perform CUDA computations on deviceMatrix, Launch Kernel
-    rgb2gray_kernel<<<
+    conv_2D_basic_kernel<<<
         gridSize,
         blockSize
     >>> (
-        deviceRed,
-        deviceGreen,
-        deviceBlue,
-        deviceGray,
+        inputMatrix,
+        convMatrix,
+        outputMatrix,
+        radius,
         numCols,
         numRows
     );
@@ -92,84 +95,78 @@ void device_rgb2grayscale (
     );
 }
 
-
 int main() {
 
+    int radius = 3;
+
+    // Initialize image we want to work with
     Mat img = imread("thethreeamigos.jpeg", IMREAD_COLOR);
-    //imshow("Goat!", img);
+    int rows = img.rows;
+    int cols = img.cols;
+    int total = img.total(); // total === rows*cols
 
     // Allocate memory in host RAM
-    std::vector<unsigned char> hostRed(img.rows * img.cols);
-    std::vector<unsigned char> hostGreen(img.rows * img.cols);
-    std::vector<unsigned char> hostBlue(img.rows * img.cols);
-    std::vector<unsigned char> hostGray(img.rows * img.cols);
+    // Convert it to a 1D array
+    Mat flat = img.reshape(1, total*img.channels());
+    vector<float> h_inputMatrix(flat.data, flat.data + flat.total());
+    vector<float> h_outputMatrix(flat.data, flat.data + flat.total());
 
-    // Fill the host matrices with data
-    Mat greyMat(img.rows, img.cols, CV_8UC1, Scalar(0));
-    for (int rowIdx = 0; rowIdx < img.rows; ++rowIdx) {
-        for (int colIdx = 0; colIdx < img.cols; ++colIdx) {
-            auto & vec = img.at<cv::Vec<uchar, 3>>(rowIdx, colIdx);
-            int offset = rowIdx * img.cols + colIdx;
-            hostRed[offset] = vec[2];
-            hostGreen[offset] = vec[1];
-            hostBlue[offset] = vec[0];
-        }
-    }
+    // Create convolution filter
+    vector<float> h_convMatrix = {
+        0.11, 0.11, 0.11,
+        0.11, 0.11, 0.11,
+        0.11, 0.11, 0.11
+    };
 
-    // Allocate memory space on the device
-    unsigned char * deviceRed = nullptr;
-    unsigned char * deviceGreen = nullptr;
-    unsigned char * deviceBlue = nullptr;
-    unsigned char * deviceGray = nullptr;
-    size_t byteSize = img.cols * img.rows * sizeof(unsigned char);
-    checkCudaErrors(cudaMalloc(&deviceRed,byteSize));
-    checkCudaErrors(cudaMalloc(&deviceGreen,byteSize));
-    checkCudaErrors(cudaMalloc(&deviceBlue,byteSize));
-    checkCudaErrors(cudaMalloc(&deviceGray,byteSize));
+    // // Allocate memory space on the device
+    float* d_inputMatrix = nullptr;
+    float* d_convMatrix = nullptr;
+    float* d_outputMatrix = nullptr;
+    size_t matrixByteSize = total * sizeof(float);
+    size_t convByteSize = h_convMatrix.size() * sizeof(float);
+
+    checkCudaErrors(cudaMalloc(&d_inputMatrix, matrixByteSize));
+    checkCudaErrors(cudaMalloc(&d_convMatrix, matrixByteSize));
+    checkCudaErrors(cudaMalloc(&d_outputMatrix, convByteSize));
 
     // Upload data to device
     checkCudaErrors(
-        cudaMemcpy (deviceRed, hostRed.data(),byteSize,cudaMemcpyHostToDevice)
+        cudaMemcpy (d_inputMatrix, h_inputMatrix.data(), matrixByteSize, cudaMemcpyHostToDevice)
     );
     checkCudaErrors(
-        cudaMemcpy (deviceGreen, hostGreen.data(),byteSize,cudaMemcpyHostToDevice)
+        cudaMemcpy (d_convMatrix, h_convMatrix.data(), convByteSize, cudaMemcpyHostToDevice)
     );
     checkCudaErrors(
-        cudaMemcpy (deviceBlue, hostBlue.data(),byteSize,cudaMemcpyHostToDevice)
+        cudaMemcpy (d_outputMatrix, h_outputMatrix.data(), matrixByteSize, cudaMemcpyHostToDevice)
     );
 
-    device_rgb2grayscale (
-        deviceRed,
-        deviceGreen,
-        deviceBlue,
-        deviceGray,
-        img.rows,
-        img.cols
+    convolution (
+        d_inputMatrix,
+        d_convMatrix,
+        d_outputMatrix,
+        radius,
+        img.cols,
+        img.rows
     );
 
     // Copy result from device to host
     checkCudaErrors(
-        cudaMemcpy (hostGray.data(), deviceGray, byteSize, cudaMemcpyDeviceToHost)
+        cudaMemcpy (h_outputMatrix.data(), d_outputMatrix, matrixByteSize, cudaMemcpyDeviceToHost)
     );
 
-    // Copy result from gray matrix into matlab OpenCV input array format
-    for (int rowIdx = 0; rowIdx < img.rows; ++rowIdx) {
-        for (int colIdx = 0; colIdx < img.cols; ++colIdx) {
-            int offset = rowIdx * img.cols + colIdx;
-            greyMat.at<uchar>(rowIdx, colIdx) = hostGray[offset];
-        }
-    }
+    // Reconstruct the image from 1d array
+    Mat restored = Mat(rows, cols, img.type(), h_outputMatrix.data());
 
     // Write img to gray.jpg
-    imwrite("grayboiz.jpg", greyMat);
+    imwrite("grayboiz.jpg", restored);
+    
 
     // Free memory
-    cudaFree(deviceRed);
-    cudaFree(deviceGreen);
-    cudaFree(deviceBlue);
-    cudaFree(deviceGray);
+    cudaFree(d_convMatrix);
+    cudaFree(d_inputMatrix);
+    cudaFree(d_outputMatrix);
 
     printf("Made it to the end!\n");
 
-    return 0;
+    // return 0;
 }
