@@ -126,8 +126,8 @@ int main() {
     size_t convByteSize = h_convMatrix.size() * sizeof(float);
 
     checkCudaErrors(cudaMalloc(&d_inputMatrix, matrixByteSize));
-    checkCudaErrors(cudaMalloc(&d_convMatrix, matrixByteSize));
-    checkCudaErrors(cudaMalloc(&d_outputMatrix, convByteSize));
+    checkCudaErrors(cudaMalloc(&d_convMatrix, convByteSize));
+    checkCudaErrors(cudaMalloc(&d_outputMatrix, matrixByteSize));
 
     // Upload data to device
     checkCudaErrors(
