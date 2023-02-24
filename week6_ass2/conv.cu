@@ -7,11 +7,12 @@
 using namespace cv;
 using namespace std;
 
-// 4 x 4 convolutional mask
-#define FILTER_DIM 4
-
+// 2x2 convolutional mask
+#define FILTER_RADIUS 1
+// 2*r+1
+#define FILTER_SIZE 3
 // Allocate mask in constant memory
-__constant__ float filter[4 * 4];
+__constant__ int filter[4 * 4];
 
 __global__
 void conv_2D_basic_kernel (
@@ -28,7 +29,7 @@ void conv_2D_basic_kernel (
             int inRow = outRow - r + fRow;
             int inCol = outCol - r + fCol;
             if (inRow >= 0 && inRow < height && inCol >= 0 && inCol < width) {
-                Pvalue += filter[fRow*width+fCol] * N[inRow*width + inCol];
+                Pvalue += filter[fRow*FILTER_SIZE+fCol] * N[inRow*width + inCol];
             }
         }
     }
