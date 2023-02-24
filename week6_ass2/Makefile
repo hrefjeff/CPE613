@@ -18,8 +18,8 @@ main: conv.cu
 	-Xlinker -rpath=$(SHAREDLIBS)
 
 basic: basic2dconv.cu
-	nvcc -std=c++11 -o basic.o basic2dconv.cu \
-	-I$(LAPTOPCUDAPATH)$(SAMPLESPATH)
+	nvcc -std=c++11 -o basic.o basic2dconv.cu -g -G \
+	-I$(DESKTOPCUDAPATH)$(SAMPLESPATH)
 
 example: opencv-example.cpp
 	g++ -std=c++11 -o ocv.o opencv-example.cpp \

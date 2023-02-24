@@ -26,10 +26,10 @@ void conv_2D_basic_kernel (
     
     for (int fRow = 0; fRow < 2 * r + 1; fRow++) {
         for (int fCol = 0; fCol < 2 * r + 1; fCol++) {
-            int inRow = outRow - r + fRow;
-            int inCol = outCol - r + fCol;
-            if (inRow >= 0 && inRow < height && inCol >= 0 && inCol < width) {
-                Pvalue += F[fRow*width+fCol] * N[inRow*width + inCol];
+            int inputRow = outRow - r + fRow;
+            int inputCol = outCol - r + fCol;
+            if (inputRow >= 0 && inputRow < height && inputCol >= 0 && inputCol < width) {
+                Pvalue += F[fRow*width+fCol] * N[inputRow*width + inputCol];
             }
         }
     }
@@ -44,7 +44,7 @@ void convolution (
     int numRows,
     int numCols
 ) {
-    int blockWidth = 32;
+    int blockWidth = 7;
 
     // Set up kernel launch parameters, so we can create grid/blocks
     dim3 blockSize(blockWidth, blockWidth);
