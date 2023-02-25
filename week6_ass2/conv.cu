@@ -8,11 +8,11 @@ using namespace cv;
 using namespace std;
 
 // 2x2 convolutional mask
-#define FILTER_RADIUS 1
+#define FILTER_RADIUS 3
 // 2*r+1
-#define FILTER_SIZE 3
+#define FILTER_SIZE 7
 // Allocate mask in constant memory
-__constant__ int filter[4 * 4];
+__constant__ int FILTER[7 * 7];
 
 __global__
 void conv_2D_basic_kernel (
@@ -20,20 +20,26 @@ void conv_2D_basic_kernel (
 ) {
     int outCol = blockIdx.x*blockDim.x + threadIdx.x;
     int outRow = blockIdx.y*blockDim.y + threadIdx.y;
+    int filter_radius = 2 * r + 1;
     
-    float Pvalue = 0.0f;
-    int radius = 2 * r + 1;
-    
-    for (int fRow = 0; fRow < radius; fRow++) {
-        for (int fCol = 0; fCol < radius; fCol++) {
-            int inRow = outRow - r + fRow;
-            int inCol = outCol - r + fCol;
-            if (inRow >= 0 && inRow < height && inCol >= 0 && inCol < width) {
-                Pvalue += filter[fRow*FILTER_SIZE+fCol] * N[inRow*width + inCol];
+    float accumulator = 0.0;
+
+    // Iterate through the filter rows
+    for (int fRow = 0; fRow < filter_radius; fRow++) {
+        // Iterate through the filter columns
+        for (int fCol = 0; fCol < filter_radius; fCol++) {
+            int inputRow = outRow - r + fRow;
+            int inputCol = outCol - r + fCol;
+            // If we're within the height of the input matrix
+            if (inputRow >= 0 && inputRow < height) {
+                // If we're within the width of the input matrix
+                if (inputCol >= 0 && inputCol < width) {
+                    accumulator += F[fRow*FILTER_SIZE + fCol] * N[inputRow*width + inputCol];
+                }
             }
         }
     }
-    P[outRow*width+outCol] = Pvalue;
+    P[outRow*width+outCol] = accumulator;
 }
 
 __global__
@@ -55,7 +61,7 @@ void conv_2D_const_mem_kernel (
             int inCol = outCol - r + fCol;
             if (inRow >= 0 && inRow < height) {
                 if (inCol >= 0 && inCol < width) {
-                    tmp += filter[fRow*width+fCol] * inputMatrix[inRow*width+ inCol];
+                    tmp += FILTER[fRow*width+fCol] * inputMatrix[inRow*width+ inCol];
                 }
             }
         }
@@ -110,79 +116,84 @@ void convolution (
 
 int main() {
 
-    int radius = 4;
-
     // Initialize image we want to work with
     Mat img = imread("thethreeamigos.jpeg", IMREAD_COLOR);
     int rows = img.rows;
     int cols = img.cols;
     int total = img.total(); // total === rows*cols
 
-    cout << rows << " " << cols << endl; 
-
     // Allocate memory in host RAM
     // Convert it to a 1D array
     Mat flat = img.reshape(1, total*img.channels());
-    vector<float> h_inputMatrix(flat.data, flat.data + flat.total());
-    vector<float> h_outputMatrix(flat.data, flat.data + flat.total());
+    vector<float> h_matrix(flat.data, flat.data + flat.total());
+    vector<float> h_output(flat.data, flat.data + flat.total());
 
     // Create convolution filter
+    // vector<float> h_filter = {
+    //     0.11, 0.11, 0.11, 0.11, 0.11,
+    //     0.11, 0.11, 0.11, 0.11, 0.11,
+    //     0.11, 0.11, 0.11, 0.11, 0.11,
+    //     0.11, 0.11, 0.11, 0.11, 0.11,
+    //     0.11, 0.11, 0.11, 0.11, 0.11
+    // };
+
     vector<float> h_filter = {
-        0.11, 0.11, 0.11, 0.11,
-        0.11, 0.11, 0.11, 0.11,
-        0.11, 0.11, 0.11, 0.11,
-        0.11, 0.11, 0.11, 0.11
+        1, 1, 1, 1, 1,
+        1, 1, 1, 1, 1,
+        1, 1, 1, 1, 1,
+        1, 1, 1, 1, 1,
+        1, 1, 1, 1, 1
     };
 
     // // Allocate memory space on the device
-    float* d_inputMatrix = nullptr;
+    float* d_matrix = nullptr;
     float* d_filter = nullptr;
-    float* d_outputMatrix = nullptr;
+    float* d_output = nullptr;
     size_t matrixByteSize = total * sizeof(float);
-    size_t filterByteSize = h_filter.size() * sizeof(float);
+    size_t filterByteSize = FILTER_SIZE * sizeof(float);
 
-    checkCudaErrors(cudaMalloc(&d_inputMatrix, matrixByteSize));
+    checkCudaErrors(cudaMalloc(&d_matrix, matrixByteSize));
     checkCudaErrors(cudaMalloc(&d_filter, filterByteSize));
-    checkCudaErrors(cudaMalloc(&d_outputMatrix, matrixByteSize));
+    checkCudaErrors(cudaMalloc(&d_output, matrixByteSize));
     
     // Upload data to device
     checkCudaErrors(
-        cudaMemcpy (d_inputMatrix, h_inputMatrix.data(), matrixByteSize, cudaMemcpyHostToDevice)
+        cudaMemcpy (d_matrix, h_matrix.data(), matrixByteSize, cudaMemcpyHostToDevice)
     );
     checkCudaErrors(
         cudaMemcpy (d_filter, h_filter.data(), filterByteSize, cudaMemcpyHostToDevice)
     );
     checkCudaErrors(
-        cudaMemcpy (d_outputMatrix, h_outputMatrix.data(), matrixByteSize, cudaMemcpyHostToDevice)
+        cudaMemcpy (d_output, h_output.data(), matrixByteSize, cudaMemcpyHostToDevice)
     );
-    checkCudaErrors(
-        cudaMemcpyToSymbol(filter, h_filter.data(), filterByteSize)
-    );
+    // checkCudaErrors(
+    //     cudaMemcpyToSymbol(FILTER, h_filter.data(), filterByteSize)
+    // );
 
     convolution (
-        d_inputMatrix,
+        d_matrix,
         d_filter,
-        d_outputMatrix,
-        radius,
+        d_output,
+        FILTER_RADIUS,
         img.cols,
         img.rows
     );
 
     // Copy result from device to host
     checkCudaErrors(
-        cudaMemcpy (h_outputMatrix.data(), d_outputMatrix, matrixByteSize, cudaMemcpyDeviceToHost)
+        cudaMemcpy (h_output.data(), d_output, matrixByteSize, cudaMemcpyDeviceToHost)
     );
 
     // Reconstruct the image from 1d array
-    Mat restored = Mat(rows, cols, img.type(), h_outputMatrix.data());
+    Mat restored = Mat(rows, cols, img.type(), h_output.data());
 
     // Write img to gray.jpg
     imwrite("grayboiz.jpg", restored);
 
     // Free memory
     cudaFree(d_filter);
-    cudaFree(d_inputMatrix);
-    cudaFree(d_outputMatrix);
+    cudaFree(d_matrix);
+    cudaFree(d_output);
 
     printf("Made it to the end!\n");
 

@@ -19,7 +19,7 @@ main: conv.cu
 
 basic: basic2dconv.cu
 	nvcc -std=c++11 -o basic.o basic2dconv.cu -g -G \
-	-I$(DESKTOPCUDAPATH)$(SAMPLESPATH)
+	-I$(LAPTOPCUDAPATH)$(SAMPLESPATH)
 
 example: opencv-example.cpp
 	g++ -std=c++11 -o ocv.o opencv-example.cpp \
