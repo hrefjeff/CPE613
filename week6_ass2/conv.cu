@@ -16,14 +16,16 @@ __constant__ int FILTER[7 * 7];
 
 __global__
 void conv_2D_basic_kernel (
-    float* N, float* F, float* P, int r, int width, int height
+    unsigned char* N_r, unsigned char* N_g, unsigned char* N_b, float* F, unsigned char* P, int r, int width, int height
 ) {
     int outCol = blockIdx.x*blockDim.x + threadIdx.x;
     int outRow = blockIdx.y*blockDim.y + threadIdx.y;
     int filter_radius = 2 * r + 1;
     
-    float accumulator = 0.0;
-
+    float a_r = 0.0;
+    float a_g = 0.0;
+    float a_b = 0.0;
+    
     // Iterate through the filter rows
     for (int fRow = 0; fRow < filter_radius; fRow++) {
         // Iterate through the filter columns
@@ -34,12 +36,14 @@ void conv_2D_basic_kernel (
             if (inputRow >= 0 && inputRow < height) {
                 // If we're within the width of the input matrix
                 if (inputCol >= 0 && inputCol < width) {
-                    accumulator += F[fRow*FILTER_SIZE + fCol] * N[inputRow*width + inputCol];
+                    a_r += F[fRow*FILTER_SIZE + fCol] * N_r[inputRow*width + inputCol];
+                    a_g += F[fRow*FILTER_SIZE + fCol] * N_g[inputRow*width + inputCol];
+                    a_b += F[fRow*FILTER_SIZE + fCol] * N_b[inputRow*width + inputCol];
                 }
             }
         }
     }
-    P[outRow*width+outCol] = accumulator;
+    P[outRow*width+outCol] = (unsigned char)a_r + (unsigned char)a_g + (unsigned char)a_b;
 }
 
 __global__
@@ -70,9 +74,11 @@ void conv_2D_const_mem_kernel (
 }
 
 void convolution (
-    float* inputMatrix,
+    unsigned char* red,
+    unsigned char* green,
+    unsigned char* blue,
     float* filterMatrix,
-    float* outputMatrix,
+    unsigned char* outputMatrix,
     int radius,
     int numRows,
     int numCols
@@ -91,7 +97,9 @@ void convolution (
         gridSize,
         blockSize
     >>> (
-        inputMatrix,
+        red,
+        green,
+        blue,
         filterMatrix,
         outputMatrix,
         radius,
@@ -118,48 +126,68 @@ int main() {
 
     // Initialize image we want to work with
     Mat img = imread("thethreeamigos.jpeg", IMREAD_COLOR);
-    int rows = img.rows;
-    int cols = img.cols;
     int total = img.total(); // total === rows*cols
 
+    vector<unsigned char> h_red(img.rows * img.cols);
+    vector<unsigned char> h_green(img.rows * img.cols);
+    vector<unsigned char> h_blue(img.rows * img.cols);
+    vector<unsigned char> h_output(img.rows * img.cols);
+
     // Allocate memory in host RAM
-    // Convert it to a 1D array
-    Mat flat = img.reshape(1, total*img.channels());
-    vector<float> h_matrix(flat.data, flat.data + flat.total());
-    vector<float> h_output(flat.data, flat.data + flat.total());
+    for (int rowIdx = 0; rowIdx < img.rows; ++rowIdx) {
+        for (int colIdx = 0; colIdx < img.cols; ++colIdx) {
+            auto & vec = img.at<Vec<uchar, 3>>(rowIdx, colIdx);
+            int offset = rowIdx * img.cols + colIdx;
+            h_red[offset] = vec[2];
+            h_green[offset] = vec[1];
+            h_blue[offset] = vec[0];
+        }
+    }
 
     // Create convolution filter
-    // vector<float> h_filter = {
-    //     0.11, 0.11, 0.11, 0.11, 0.11,
-    //     0.11, 0.11, 0.11, 0.11, 0.11,
-    //     0.11, 0.11, 0.11, 0.11, 0.11,
-    //     0.11, 0.11, 0.11, 0.11, 0.11,
-    //     0.11, 0.11, 0.11, 0.11, 0.11
-    // };
-
     vector<float> h_filter = {
-        1, 1, 1, 1, 1,
-        1, 1, 1, 1, 1,
-        1, 1, 1, 1, 1,
-        1, 1, 1, 1, 1,
-        1, 1, 1, 1, 1
+        0.11, 0.11, 0.11, 0.11, 0.11,
+        0.11, 0.11, 0.11, 0.11, 0.11,
+        0.11, 0.11, 0.11, 0.11, 0.11,
+        0.11, 0.11, 0.11, 0.11, 0.11,
+        0.11, 0.11, 0.11, 0.11, 0.11
     };
 
-    // // Allocate memory space on the device
-    float* d_matrix = nullptr;
+    // vector<float> h_filter = {
+    //     1, 1, 1, 1, 1,
+    //     1, 1, 1, 1, 1,
+    //     1, 1, 1, 1, 1,
+    //     1, 1, 1, 1, 1,
+    //     1, 1, 1, 1, 1
+    // };
+
+    // Allocate memory space on the device
+    unsigned char * d_red = nullptr;
+    unsigned char * d_green = nullptr;
+    unsigned char * d_blue = nullptr;
     float* d_filter = nullptr;
-    float* d_output = nullptr;
-    size_t matrixByteSize = total * sizeof(float);
+    unsigned char * d_output = nullptr;
+
+    size_t matrixByteSize = total * sizeof(unsigned char);
     size_t filterByteSize = FILTER_SIZE * sizeof(float);
 
-    checkCudaErrors(cudaMalloc(&d_matrix, matrixByteSize));
+    checkCudaErrors(cudaMalloc(&d_red, matrixByteSize));
+    checkCudaErrors(cudaMalloc(&d_green, matrixByteSize));
+    checkCudaErrors(cudaMalloc(&d_blue, matrixByteSize));
     checkCudaErrors(cudaMalloc(&d_filter, filterByteSize));
     checkCudaErrors(cudaMalloc(&d_output, matrixByteSize));
     
     // Upload data to device
     checkCudaErrors(
-        cudaMemcpy (d_matrix, h_matrix.data(), matrixByteSize, cudaMemcpyHostToDevice)
+        cudaMemcpy (d_red, h_red.data(), matrixByteSize, cudaMemcpyHostToDevice)
     );
+    checkCudaErrors(
+        cudaMemcpy (d_green, h_green.data(), matrixByteSize, cudaMemcpyHostToDevice)
+    );
+    checkCudaErrors(
+        cudaMemcpy (d_blue, h_blue.data(), matrixByteSize, cudaMemcpyHostToDevice)
+    );
+
     checkCudaErrors(
         cudaMemcpy (d_filter, h_filter.data(), filterByteSize, cudaMemcpyHostToDevice)
     );
@@ -171,7 +199,9 @@ int main() {
     // );
 
     convolution (
-        d_matrix,
+        d_red,
+        d_green,
+        d_blue,
         d_filter,
         d_output,
         FILTER_RADIUS,
@@ -184,15 +214,23 @@ int main() {
         cudaMemcpy (h_output.data(), d_output, matrixByteSize, cudaMemcpyDeviceToHost)
     );
 
-    // Reconstruct the image from 1d array
-    Mat restored = Mat(rows, cols, img.type(), h_output.data());
+    // Copy result from gray matrix into matlab OpenCV input array format
+    Mat opencv_output(img.rows, img.cols, CV_8UC1, Scalar(0));
+    for (int rowIdx = 0; rowIdx < img.rows; ++rowIdx) {
+        for (int colIdx = 0; colIdx < img.cols; ++colIdx) {
+            int offset = rowIdx * img.cols + colIdx;
+            opencv_output.at<uchar>(rowIdx, colIdx) = h_output[offset];
+        }
+    }
 
     // Write img to gray.jpg
-    imwrite("grayboiz.jpg", restored);
+    imwrite("grayboiz.jpg", opencv_output);
 
     // Free memory
+    cudaFree(d_red);
+    cudaFree(d_blue);
+    cudaFree(d_green);
     cudaFree(d_filter);
-    cudaFree(d_matrix);
     cudaFree(d_output);
 
     printf("Made it to the end!\n");
