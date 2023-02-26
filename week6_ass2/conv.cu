@@ -53,6 +53,52 @@ void conv_2D_basic_kernel (
 }
 
 __global__
+void conv_2D_shared_mem_kernel (
+    unsigned char* N_b,
+    unsigned char* N_g,
+    unsigned char* N_r,
+    float* F,
+    unsigned char* P,
+    int r,
+    int numCols,
+    int numRows
+) {
+    int outCol = blockIdx.x*blockDim.x + threadIdx.x;
+    int outRow = blockIdx.y*blockDim.y + threadIdx.y;
+
+    __shared__ float F_s[FILTER_SIZE][FILTER_SIZE];
+    for (int fRow = 0; fRow < FILTER_SIZE; fRow++) {
+        for (int fCol = 0; fCol < FILTER_SIZE; fCol++) {
+            F_s[fRow][fCol] = F[fRow*FILTER_SIZE + fCol];
+        }
+        __syncthreads();
+    }
+    
+    float a_r = 0.0;
+    float a_g = 0.0;
+    float a_b = 0.0;
+    
+    // Iterate through the filter rows
+    for (int fRow = 0; fRow < FILTER_SIZE; fRow++) {
+        // Iterate through the filter columns
+        for (int fCol = 0; fCol < FILTER_SIZE; fCol++) {
+            int inputRow = outRow - r + fRow;
+            int inputCol = outCol - r + fCol;
+            // If we're within the height of the input matrix
+            if (inputRow >= 0 && inputRow < numRows) {
+                // If we're within the width of the input matrix
+                if (inputCol >= 0 && inputCol < numCols) {
+                    a_b += F_s[fRow][fCol] * N_b[inputRow*numCols + inputCol];
+                    a_g += F_s[fRow][fCol] * N_g[inputRow*numCols + inputCol];
+                    a_r += F_s[fRow][fCol] * N_r[inputRow*numCols + inputCol];
+                }
+            }
+        }
+    }
+    P[outRow*numCols + outCol] = (unsigned char)(a_r + a_g + a_b);
+}
+
+__global__
 void conv_2D_const_mem_kernel (
     unsigned char* N_b,
     unsigned char* N_g,
@@ -105,31 +151,31 @@ void convolution (
     );
 
     // Perform CUDA computations on deviceMatrix, Launch Kernel
-    // conv_2D_basic_kernel<<<
-    //     gridSize,
-    //     blockSize
-    // >>> (
-    //     red,
-    //     green,
-    //     blue,
-    //     filterMatrix,
-    //     outputMatrix,
-    //     radius,
-    //     numCols,
-    //     numRows
-    // );
-    conv_2D_const_mem_kernel<<<
+    conv_2D_shared_mem_kernel<<<
         gridSize,
         blockSize
     >>> (
         red,
         green,
         blue,
+        filterMatrix,
         outputMatrix,
         radius,
         numCols,
         numRows
     );
+    // conv_2D_const_mem_kernel<<<
+    //     gridSize,
+    //     blockSize
+    // >>> (
+    //     red,
+    //     green,
+    //     blue,
+    //     outputMatrix,
+    //     radius,
+    //     numCols,
+    //     numRows
+    // );
 
     checkCudaErrors(
         cudaGetLastError()
