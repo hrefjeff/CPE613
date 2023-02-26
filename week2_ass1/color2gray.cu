@@ -80,22 +80,30 @@ int main() {
     //imshow("Goat!", img);
 
     // Allocate memory in host RAM
-    std::vector<unsigned char> hostRed(img.rows * img.cols);
-    std::vector<unsigned char> hostGreen(img.rows * img.cols);
-    std::vector<unsigned char> hostBlue(img.rows * img.cols);
-    std::vector<unsigned char> hostGray(img.rows * img.cols);
-
     // Fill the host matrices with data
-    Mat greyMat(img.rows, img.cols, CV_8UC1, Scalar(0));
-    for (int rowIdx = 0; rowIdx < img.rows; ++rowIdx) {
-        for (int colIdx = 0; colIdx < img.cols; ++colIdx) {
-            auto & vec = img.at<cv::Vec<uchar, 3>>(rowIdx, colIdx);
-            int offset = rowIdx * img.cols + colIdx;
-            hostRed[offset] = vec[2];
-            hostGreen[offset] = vec[1];
-            hostBlue[offset] = vec[0];
-        }
-    }
+
+    // Method 1: Create vectors ourselves and fill matrices
+    // vector<unsigned char> hostRed(img.rows * img.cols);
+    // vector<unsigned char> hostGreen(img.rows * img.cols);
+    // vector<unsigned char> hostBlue(img.rows * img.cols);
+    // for (int rowIdx = 0; rowIdx < img.rows; ++rowIdx) {
+    //     for (int colIdx = 0; colIdx < img.cols; ++colIdx) {
+    //         auto & vec = img.at<cv::Vec<uchar, 3>>(rowIdx, colIdx);
+    //         int offset = rowIdx * img.cols + colIdx;
+    //         hostRed[offset] = vec[2];
+    //         hostGreen[offset] = vec[1];
+    //         hostBlue[offset] = vec[0];
+    //     }
+    // }
+
+    // Method 2: Use OpenCV method and fill matrices
+    Mat bgr_channels[3];
+    split(img, bgr_channels);
+    vector<unsigned char> hostBlue(bgr_channels[0].data, bgr_channels[0].data + bgr_channels[0].total());
+    vector<unsigned char> hostGreen(bgr_channels[1].data, bgr_channels[1].data + bgr_channels[1].total());
+    vector<unsigned char> hostRed(bgr_channels[2].data, bgr_channels[2].data + bgr_channels[2].total());
+    
+    vector<unsigned char> hostGray(img.rows * img.cols);
 
     // Allocate memory space on the device
     unsigned char * deviceRed = nullptr;
@@ -134,15 +142,22 @@ int main() {
     );
 
     // Copy result from gray matrix into matlab OpenCV input array format
+    Mat greyMat(img.rows, img.cols, CV_8UC1);
     for (int rowIdx = 0; rowIdx < img.rows; ++rowIdx) {
         for (int colIdx = 0; colIdx < img.cols; ++colIdx) {
             int offset = rowIdx * img.cols + colIdx;
             greyMat.at<uchar>(rowIdx, colIdx) = hostGray[offset];
+            //greyMat.at<uchar>(rowIdx, colIdx) = hostRed[offset] + hostGreen[offset] + hostBlue[offset];
         }
     }
 
+    copy(hostGray.begin(), hostGray.end(), greyMat.data);
+
     // Write img to gray.jpg
-    imwrite("grayboiz.jpg", greyMat);
+    //imwrite("grayboiz.jpg", greyMat);
+    imshow("Original", img);
+    imshow("Reconstructed", greyMat);
+    waitKey(0);
 
     // Free memory
     cudaFree(deviceRed);
