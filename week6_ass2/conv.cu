@@ -7,13 +7,14 @@
 using namespace cv;
 using namespace std;
 
-// 2x2 convolutional mask
 #define FILTER_RADIUS 3
-// 2*r+1
-#define FILTER_SIZE 7
-// Allocate mask in constant memory
-__constant__ float FILTER[7 * 7];
+#define FILTER_SIZE (2*FILTER_RADIUS+1)
+#define IN_TILE_DIM 32
+#define OUT_TILE_DIM ((IN_TILE_DIM) - 2 * (FILTER_RADIUS))
+#define TILE_DIM 32
+__constant__ float FILTER[FILTER_SIZE * FILTER_SIZE];   // Allocate mask in constant memory
 
+// Question #1 on homework
 __global__
 void conv_2D_basic_kernel (
     unsigned char* N_b,
@@ -52,6 +53,7 @@ void conv_2D_basic_kernel (
     P[outRow*numCols + outCol] = (unsigned char)(a_r + a_g + a_b);
 }
 
+// Question #2 on homework
 __global__
 void conv_2D_shared_mem_kernel (
     unsigned char* N_b,
@@ -98,6 +100,7 @@ void conv_2D_shared_mem_kernel (
     P[outRow*numCols + outCol] = (unsigned char)(a_r + a_g + a_b);
 }
 
+// Question #3 on homework
 __global__
 void conv_2D_const_mem_kernel (
     unsigned char* N_b,
@@ -129,6 +132,88 @@ void conv_2D_const_mem_kernel (
         }
     }
     outputMatrix[outRow*numCols + outCol] = (unsigned char)(a_b + a_g + a_b);
+}
+
+// Question #5 on homework
+__global__
+void conv_tiled_2D_const_mem_kernel (
+    float* N,
+    float* P,
+    int numCols,
+    int numRows
+) {
+    int col = blockIdx.x * OUT_TILE_DIM + threadIdx.x - FILTER_RADIUS;
+    int row = blockIdx.x * OUT_TILE_DIM + threadIdx.x - FILTER_RADIUS;
+    // loading input tile
+    __shared__ float N_s[IN_TILE_DIM][IN_TILE_DIM];
+    if(row >= 0 && row < numRows && col >= 0 && col < numCols) {
+        N_s[threadIdx.y][threadIdx.x] = N[row*numCols + col];
+    } else {
+        N_s[threadIdx.y][threadIdx.x] = 0.0;
+    }
+    __syncthreads();
+    // Calculating output elements
+    int tileCol = threadIdx.x - FILTER_RADIUS;
+    int tileRow = threadIdx.y - FILTER_RADIUS;
+    // turning off the threads at the edges of the block
+    if (col >= 0 && col < numCols && row >= 0 && row < numRows) {
+        if (tileCol >= 0 && tileCol < OUT_TILE_DIM && tileRow >=0
+        && tileRow < OUT_TILE_DIM) {
+            float Pvalue = 0.0f;
+            for (int fRow = 0; fRow < 2*FILTER_RADIUS+1; fRow++){
+                for (int fCol = 0; fCol < 2*FILTER_RADIUS+1; fCol++){
+                    Pvalue += FILTER[fRow*FILTER_SIZE+fCol] * N_s[tileRow+fRow][tileCol+fCol];
+                }
+            }
+            P[row*numCols + col] = Pvalue;
+        }
+    }
+}
+
+// Question #6 on homework
+__global__
+void conv_cached_tiled_2D_const_mem_kernel (
+    float* N,
+    float *P,
+    int numCols,
+    int numRows
+){
+    int col = blockIdx.x*TILE_DIM+threadIdx.x;
+    int row = blockIdx.y*TILE_DIM+threadIdx.y;
+    
+    // loading input tile
+    __shared__ float N_s[TILE_DIM][TILE_DIM];
+    if(row < numRows && col < numCols) {
+        N_s[threadIdx.y][threadIdx.x] = N[row*numCols + col];
+    } else {
+        N_s[threadIdx.y][threadIdx.x] = 0.0;
+    }
+    __syncthreads();
+    // Calculating output elements
+    // turning off the threads at the edges of the block
+    if (col < numCols && row < numRows) {
+        float Pvalue = 0.0f;
+        for (int fRow = 0; fRow < 2*FILTER_RADIUS+1; fRow++) {
+            for (int fCol = 0; fCol < 2*FILTER_RADIUS+1; fCol++) {
+                if (threadIdx.x - FILTER_RADIUS + fCol > 0 &&
+                    threadIdx.x - FILTER_RADIUS + fCol < TILE_DIM &&
+                    threadIdx.y - FILTER_RADIUS + fRow > 0 &&
+                    threadIdx.y - FILTER_RADIUS + fRow < TILE_DIM
+                ) {
+                    Pvalue += FILTER[fRow*FILTER_SIZE+fCol]*N_s[threadIdx.y+fRow][threadIdx.x+fCol];
+                } else {
+                    if (row-FILTER_RADIUS+fRow >=0 &&
+                        row-FILTER_RADIUS+fRow < numRows &&
+                        col-FILTER_RADIUS+fCol >=0 &&
+                        col-FILTER_RADIUS+fCol < numCols
+                    ) {
+                        Pvalue += FILTER[fRow*FILTER_SIZE+fCol]*N[(row-FILTER_RADIUS+fRow)*numCols+col-FILTER_RADIUS+fCol];
+                    }
+                }
+            }
+        }
+        P[row*numCols+col] = Pvalue;
+    }
 }
 
 void convolution (

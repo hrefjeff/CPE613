@@ -7,7 +7,7 @@ using namespace std;
 int main()  {
 
     Mat image;
-    image = imread("thethreeamigos.jpeg", IMREAD_UNCHANGED);   // Read the file
+    image = imread("3graygoats.jpg", IMREAD_UNCHANGED);   // Read the file
     namedWindow("cvmat", WINDOW_AUTOSIZE );// Create a window for display.
     imshow("cvmat", image );                   // Show our image inside it.
 
