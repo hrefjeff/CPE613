@@ -7,8 +7,8 @@
 using namespace cv;
 using namespace std;
 
-#define FILTER_RADIUS 3
-#define FILTER_SIZE (2*FILTER_RADIUS+1)
+#define FILTER_RADIUS 1
+#define FILTER_SIZE 3
 #define IN_TILE_DIM 32
 #define OUT_TILE_DIM ((IN_TILE_DIM) - 2 * (FILTER_RADIUS))
 #define TILE_DIM 32
@@ -17,7 +17,7 @@ __constant__ float FILTER[FILTER_SIZE * FILTER_SIZE];   // Allocate mask in cons
 // Question #1 on homework
 __global__
 void conv_2D_basic_kernel (
-    unsigned char* N, float* F, unsigned char* P, int r, int numRows, int numCols
+    unsigned char* N, float* F, unsigned char* P, int r, int width, int height
 ) {
     int outCol = blockIdx.x*blockDim.x + threadIdx.x;
     int outRow = blockIdx.y*blockDim.y + threadIdx.y;
@@ -32,15 +32,15 @@ void conv_2D_basic_kernel (
             int inputRow = outRow - r + fRow;
             int inputCol = outCol - r + fCol;
             // If we're within the height of the input matrix
-            if (inputRow >= 0 && inputRow < numCols) {
+            if (inputRow >= 0 && inputRow < height) {
                 // If we're within the width of the input matrix
-                if (inputCol >= 0 && inputCol < numRows) {
-                    accumulator += F[fRow*FILTER_SIZE + fCol] * N[inputRow*numCols + inputCol];
+                if (inputCol >= 0 && inputCol < width) {
+                    accumulator += F[fRow*FILTER_SIZE + fCol] * N[inputRow*width + inputCol];
                 }
             }
         }
     }
-    P[outRow*numCols+outCol] = (unsigned char)accumulator;
+    P[outRow*width+outCol] = (unsigned char)accumulator;
 }
 
 // Question #2 on homework
@@ -219,8 +219,8 @@ void convolution (
     // Set up kernel launch parameters, so we can create grid/blocks
     dim3 blockSize(blockWidth, blockWidth);
     dim3 gridSize(
-        (numRows + blockWidth - 1) / blockWidth,
-        (numCols + blockWidth - 1) / blockWidth
+        (numCols + blockWidth - 1) / blockWidth,
+        (numRows + blockWidth - 1) / blockWidth
     );
 
     // Perform CUDA computations on deviceMatrix, Launch Kernel
@@ -232,8 +232,8 @@ void convolution (
         filterMatrix,
         outputMatrix,
         radius,
-        numRows,
-        numCols
+        numCols,
+        numRows
     );
     // conv_2D_const_mem_kernel<<<
     //     gridSize,
@@ -254,14 +254,11 @@ void convolution (
 }
 
 void init_filter_matrix(float *m, int n) {
+    // Guassian Blur filter
     vector<float> filter = {
-        0.11, 0.11, 0.11, 0.11, 0.11, 0.11, 0.11,
-        0.11, 0.11, 0.11, 0.11, 0.11, 0.11, 0.11,
-        0.11, 0.11, 0.11, 0.11, 0.11, 0.11, 0.11,
-        0.11, 0.11, 0.11, 0.11, 0.11, 0.11, 0.11,
-        0.11, 0.11, 0.11, 0.11, 0.11, 0.11, 0.11,
-        0.11, 0.11, 0.11, 0.11, 0.11, 0.11, 0.11,
-        0.11, 0.11, 0.11, 0.11, 0.11, 0.11, 0.11
+        0.0625, 0.125, 0.0625,
+        0.125, 0.25, 0.125,
+        0.0625, 0.125, 0.0625,
     };
     for (int i = 0; i < n; i++) {
         for (int j = 0; j < n; j++) {
