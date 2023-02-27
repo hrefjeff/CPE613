@@ -11,7 +11,7 @@ SHAREDLIBS=/usr/local/lib
 
 main: conv.cu
 	nvcc -std=c++11 -o c2g.o conv.cu \
-	-I$(DESKTOPCUDAPATH)$(SAMPLESPATH) \
+	-I$(LAPTOPCUDAPATH)$(SAMPLESPATH) \
 	-I$(OPENCVPATH) \
 	-L$(SHAREDLIBS) \
 	-lopencv_core -lopencv_imgcodecs -lopencv_highgui -lopencv_imgproc \

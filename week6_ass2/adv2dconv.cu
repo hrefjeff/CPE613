@@ -56,8 +56,8 @@ void convolution (
     // Set up kernel launch parameters, so we can create grid/blocks
     dim3 blockSize(blockWidth, blockWidth);
     dim3 gridSize(
-        (numRows + blockWidth - 1) / blockWidth,
-        (numCols + blockWidth - 1) / blockWidth
+        (numCols + blockWidth - 1) / blockWidth,
+        (numRows + blockWidth - 1) / blockWidth
     );
 
     // Perform CUDA computations on deviceMatrix, Launch Kernel
@@ -144,7 +144,8 @@ int main() {
 
     // Convert the input image to a vector
     vector<unsigned char> h_input(inputImage.data, inputImage.data + imageTotalSize);
-    vector<unsigned char> h_result(inputImage.data, inputImage.data + imageTotalSize);
+    vector<unsigned char> h_result;
+    h_result.resize(imageTotalSize);
 
     // Allocate the matrix and initialize it
     float *h_filter = new float[FILTER_SIZE * FILTER_SIZE];
