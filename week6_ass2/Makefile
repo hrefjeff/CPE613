@@ -21,6 +21,14 @@ basic: basic2dconv.cu
 	nvcc -std=c++11 -o basic.o basic2dconv.cu -g -G \
 	-I$(DESKTOPCUDAPATH)$(SAMPLESPATH)
 
+advanced: adv2dconv.cu
+	nvcc -std=c++11 -o adv.o adv2dconv.cu \
+	-I$(LAPTOPCUDAPATH)$(SAMPLESPATH) \
+	-I$(OPENCVPATH) \
+	-L$(SHAREDLIBS) \
+	-lopencv_core -lopencv_imgcodecs -lopencv_highgui -lopencv_imgproc \
+	-Xlinker -rpath=$(SHAREDLIBS)
+
 example: opencv-example.cpp
 	g++ -std=c++11 -o ocv.o opencv-example.cpp \
 	-I$(OPENCVPATH) \
