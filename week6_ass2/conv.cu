@@ -17,6 +17,7 @@ using namespace std;
 __constant__ float FILTER_c[FILTER_SIZE * FILTER_SIZE];   // Allocate mask in constant memory
 
 // Question #1 on homework
+// 0.25 OP/B (2 operations per 8 bytes loaded)
 __global__
 void conv_2D_basic_kernel (
     unsigned char* N, float* F, unsigned char* P, int r, int width, int height
@@ -37,6 +38,7 @@ void conv_2D_basic_kernel (
             if (inputRow >= 0 && inputRow < height) {
                 // If we're within the width of the input matrix
                 if (inputCol >= 0 && inputCol < width) {
+                    // 2 operations, per 8 bytes loaded
                     accumulator += F[fRow*FILTER_SIZE + fCol] * N[inputRow*width + inputCol];
                 }
             }
@@ -82,6 +84,8 @@ void conv_2D_shared_mem_kernel (
 }
 
 // Question #3 on homework
+// Best used for when variables are not modified during kernel execution
+// 0.5 OP/B (2 operations for every 4 bytes)
 __global__
 void conv_2D_const_mem_kernel (
     unsigned char* inputMatrix,
@@ -101,6 +105,8 @@ void conv_2D_const_mem_kernel (
             int inputCol = outCol - r + fCol;
             if (inputRow >= 0 && inputRow < numRows) {
                 if (inputCol >= 0 && inputCol < numCols) {
+                    // 2 Operations (mult and add) for every 4 bytes
+                    // (input matrix is only loaded. conv filter is always present)
                     accumulator += FILTER_c[fRow*FILTER_SIZE + fCol] * inputMatrix[inputRow*numCols + inputCol];
                 }
             }
@@ -213,18 +219,18 @@ void convolution (
     );
 
     // Perform CUDA computations on deviceMatrix, Launch Kernel
-    // conv_2D_basic_kernel<<<
+    conv_2D_basic_kernel<<<
     // conv_2D_shared_mem_kernel<<<
-    //     gridSize,
-    //     blockSize
-    // >>> (
-    //     inputMatrix,
-    //     filterMatrix,
-    //     outputMatrix,
-    //     radius,
-    //     numCols,
-    //     numRows
-    // );
+        gridSize,
+        blockSize
+    >>> (
+        inputMatrix,
+        filterMatrix,
+        outputMatrix,
+        radius,
+        numCols,
+        numRows
+    );
     // conv_2D_const_mem_kernel<<<
     //     gridSize,
     //     blockSize
@@ -235,16 +241,16 @@ void convolution (
     //     numCols,
     //     numRows
     // );
-    conv_tiled_2D_const_mem_kernel<<<
-    //conv_cached_tiled_2D_const_mem_kernel<<<
-        gridSize,
-        blockSize
-    >>> (
-        inputMatrix,
-        outputMatrix,
-        numCols,
-        numRows
-    );
+    // conv_tiled_2D_const_mem_kernel<<<
+    // conv_cached_tiled_2D_const_mem_kernel<<<
+    //     gridSize,
+    //     blockSize
+    // >>> (
+    //     inputMatrix,
+    //     outputMatrix,
+    //     numCols,
+    //     numRows
+    // );
 
     checkCudaErrors(
         cudaGetLastError()
@@ -332,8 +338,13 @@ int main() {
     double effectiveBandwidth_bitspersec {
         (numberOfReads + numberOfWrites) * sizeof(float) * 8 / 
         (elapsedTime_ms / 1.0e3)
-    }; 
+    };
     
+    
+    printf (
+    "\n\t- Avg Elapsed Time:             %20.16e Ms\n",
+        elapsedTime_ms / 1.0e3
+    );
     printf (
     "\t- Computational Rate:         %20.16e Gflops\n",
     flopRate / 1e9 
