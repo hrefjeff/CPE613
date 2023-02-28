@@ -1,3 +1,5 @@
+#include <Timer.hpp>
+
 #include <cstdlib>
 #include <iostream>
 #include <opencv2/opencv.hpp>
@@ -310,6 +312,8 @@ int main() {
         cudaMemcpyToSymbol(FILTER_c, h_filter, filterByteSize)
     );
 
+    Timer timer;
+    timer.start();
     convolution (
         d_matrix,
         d_filter,
@@ -318,22 +322,42 @@ int main() {
         inputImage.rows,
         inputImage.cols
     );
+    timer.stop();
 
-    // Copy result from device to host
-    checkCudaErrors(
-        cudaMemcpy (h_result.data(), d_result, matrixByteSize, cudaMemcpyDeviceToHost)
+    double elapsedTime_ms = timer.elapsedTime_ms();
+    double numberOfFlops = 2 * imageTotalSize;
+    double flopRate = numberOfFlops / (elapsedTime_ms / 1.0e3);
+    double numberOfReads = 2 * imageTotalSize;
+    double numberOfWrites = imageTotalSize;
+    double effectiveBandwidth_bitspersec {
+        (numberOfReads + numberOfWrites) * sizeof(float) * 8 / 
+        (elapsedTime_ms / 1.0e3)
+    }; 
+    
+    printf (
+    "\t- Computational Rate:         %20.16e Gflops\n",
+    flopRate / 1e9 
+    );
+    printf (
+    "\t- Effective Bandwidth:        %20.16e Gbps\n",
+    effectiveBandwidth_bitspersec / 1e9 
     );
 
-    // Copy result from gray matrix into matlab OpenCV input array format
-    Mat outputImage;
-    outputImage.create(inputImage.rows, inputImage.cols, CV_8UC1);
-    copy(h_result.begin(), h_result.end(), outputImage.data);
+    // Copy result from device to host
+    // checkCudaErrors(
+    //     cudaMemcpy (h_result.data(), d_result, matrixByteSize, cudaMemcpyDeviceToHost)
+    // );
 
-    // Write img to gray.jpg
-    //imwrite("grayboiz.jpg", opencv_output);
-    imshow("Original", inputImage);
-    imshow("Reconstructed", outputImage);
-    waitKey(0);
+    // // Copy result from gray matrix into matlab OpenCV input array format
+    // Mat outputImage;
+    // outputImage.create(inputImage.rows, inputImage.cols, CV_8UC1);
+    // copy(h_result.begin(), h_result.end(), outputImage.data);
+
+    // // Write img to gray.jpg
+    // //imwrite("grayboiz.jpg", opencv_output);
+    // imshow("Original", inputImage);
+    // imshow("Reconstructed", outputImage);
+    // waitKey(0);
 
     // Free memory
     cudaFree(d_matrix);
