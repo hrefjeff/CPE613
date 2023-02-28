@@ -141,7 +141,7 @@ void conv_tiled_2D_const_mem_kernel (
                     Pvalue += FILTER_c[fRow*FILTER_SIZE+fCol] * N_s[tileRow+fRow][tileCol+fCol];
                 }
             }
-            P[row*numCols + col] = Pvalue;
+            P[row*numCols + col] = (unsigned char)Pvalue;
         }
     }
 }
@@ -149,8 +149,8 @@ void conv_tiled_2D_const_mem_kernel (
 // Question #6 on homework
 __global__
 void conv_cached_tiled_2D_const_mem_kernel (
-    float* N,
-    float *P,
+    unsigned char* N,
+    unsigned char *P,
     int numCols,
     int numRows
 ){
@@ -165,6 +165,7 @@ void conv_cached_tiled_2D_const_mem_kernel (
         N_s[threadIdx.y][threadIdx.x] = 0.0;
     }
     __syncthreads();
+
     // Calculating output elements
     // turning off the threads at the edges of the block
     if (col < numCols && row < numRows) {
@@ -188,7 +189,7 @@ void conv_cached_tiled_2D_const_mem_kernel (
                 }
             }
         }
-        P[row*numCols+col] = Pvalue;
+        P[row*numCols+col] = (unsigned char)Pvalue;
     }
 }
 
@@ -231,7 +232,8 @@ void convolution (
     //     numCols,
     //     numRows
     // );
-    conv_tiled_2D_const_mem_kernel<<<
+    // conv_tiled_2D_const_mem_kernel<<<
+    conv_cached_tiled_2D_const_mem_kernel<<<
         gridSize,
         blockSize
     >>> (
