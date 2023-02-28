@@ -116,7 +116,7 @@ void conv_tiled_2D_const_mem_kernel (
     int numRows
 ) {
     int col = blockIdx.x * OUT_TILE_DIM + threadIdx.x - FILTER_RADIUS;
-    int row = blockIdx.x * OUT_TILE_DIM + threadIdx.x - FILTER_RADIUS;
+    int row = blockIdx.y * OUT_TILE_DIM + threadIdx.y - FILTER_RADIUS;
     
     // loading input tile
     __shared__ float N_s[IN_TILE_DIM][IN_TILE_DIM];
@@ -134,7 +134,7 @@ void conv_tiled_2D_const_mem_kernel (
     // turning off the threads at the edges of the block
     if (col >= 0 && col < numCols && row >= 0 && row < numRows) {
         if (tileCol >= 0 && tileCol < OUT_TILE_DIM && tileRow >=0
-        && tileRow < OUT_TILE_DIM) {
+            && tileRow < OUT_TILE_DIM) {
             float Pvalue = 0.0f;
             for (int fRow = 0; fRow < 2*FILTER_RADIUS+1; fRow++){
                 for (int fCol = 0; fCol < 2*FILTER_RADIUS+1; fCol++){
@@ -189,7 +189,7 @@ void conv_cached_tiled_2D_const_mem_kernel (
                 }
             }
         }
-        P[row*numCols+col] = (unsigned char)Pvalue;
+        P[row*numCols + col] = (unsigned char)Pvalue;
     }
 }
 
@@ -211,6 +211,7 @@ void convolution (
     );
 
     // Perform CUDA computations on deviceMatrix, Launch Kernel
+    // conv_2D_basic_kernel<<<
     // conv_2D_shared_mem_kernel<<<
     //     gridSize,
     //     blockSize
@@ -232,8 +233,8 @@ void convolution (
     //     numCols,
     //     numRows
     // );
-    // conv_tiled_2D_const_mem_kernel<<<
-    conv_cached_tiled_2D_const_mem_kernel<<<
+    conv_tiled_2D_const_mem_kernel<<<
+    //conv_cached_tiled_2D_const_mem_kernel<<<
         gridSize,
         blockSize
     >>> (
@@ -255,6 +256,13 @@ void init_filter_matrix(float *m, int n) {
         0.125, 0.25, 0.125,
         0.0625, 0.125, 0.0625,
     };
+    // vector<float> filter = {
+    //     1, 4, 5, 4, 1,
+    //     4, 16, 24, 16, 4,
+    //     6, 24, 36, 24, 6,
+    //     4, 16, 24, 16, 4,
+    //     1, 4, 5, 4, 1
+    // };
     for (int i = 0; i < n; i++) {
         for (int j = 0; j < n; j++) {
             m[n * i + j] = filter[n * i + j];
