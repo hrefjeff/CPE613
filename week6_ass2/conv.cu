@@ -12,7 +12,7 @@ using namespace std;
 #define IN_TILE_DIM 32
 #define OUT_TILE_DIM ((IN_TILE_DIM) - 2 * (FILTER_RADIUS))
 #define TILE_DIM 32
-__constant__ float FILTER[FILTER_SIZE * FILTER_SIZE];   // Allocate mask in constant memory
+__constant__ float FILTER_c[FILTER_SIZE * FILTER_SIZE];   // Allocate mask in constant memory
 
 // Question #1 on homework
 __global__
@@ -46,14 +46,7 @@ void conv_2D_basic_kernel (
 // Question #2 on homework
 __global__
 void conv_2D_shared_mem_kernel (
-    unsigned char* N_b,
-    unsigned char* N_g,
-    unsigned char* N_r,
-    float* F,
-    unsigned char* P,
-    int r,
-    int numCols,
-    int numRows
+    unsigned char* N, float* F, unsigned char* P, int r, int numCols, int numRows
 ) {
     int outCol = blockIdx.x*blockDim.x + threadIdx.x;
     int outRow = blockIdx.y*blockDim.y + threadIdx.y;
@@ -66,9 +59,7 @@ void conv_2D_shared_mem_kernel (
         __syncthreads();
     }
     
-    float a_r = 0.0;
-    float a_g = 0.0;
-    float a_b = 0.0;
+    float accumulator = 0.0;
     
     // Iterate through the filter rows
     for (int fRow = 0; fRow < FILTER_SIZE; fRow++) {
@@ -80,22 +71,18 @@ void conv_2D_shared_mem_kernel (
             if (inputRow >= 0 && inputRow < numRows) {
                 // If we're within the width of the input matrix
                 if (inputCol >= 0 && inputCol < numCols) {
-                    a_b += F_s[fRow][fCol] * N_b[inputRow*numCols + inputCol];
-                    a_g += F_s[fRow][fCol] * N_g[inputRow*numCols + inputCol];
-                    a_r += F_s[fRow][fCol] * N_r[inputRow*numCols + inputCol];
+                    accumulator += F_s[fRow][fCol] * N[inputRow*numCols + inputCol];
                 }
             }
         }
     }
-    P[outRow*numCols + outCol] = (unsigned char)(a_r + a_g + a_b);
+    P[outRow*numCols + outCol] = (unsigned char)(accumulator);
 }
 
 // Question #3 on homework
 __global__
 void conv_2D_const_mem_kernel (
-    unsigned char* N_b,
-    unsigned char* N_g,
-    unsigned char* N_r,
+    unsigned char* inputMatrix,
     unsigned char* outputMatrix,
     int r,
     int numCols,
@@ -104,9 +91,7 @@ void conv_2D_const_mem_kernel (
     int outCol = blockIdx.x*blockDim.x + threadIdx.x;
     int outRow = blockIdx.y*blockDim.y + threadIdx.y;
 
-    unsigned char a_r = 0.0;
-    unsigned char a_g = 0.0;
-    unsigned char a_b = 0.0;
+    float accumulator = 0.0;
     
     for (int fRow = 0; fRow < FILTER_SIZE; fRow++) {
         for (int fCol = 0; fCol < FILTER_SIZE; fCol++) {
@@ -114,26 +99,25 @@ void conv_2D_const_mem_kernel (
             int inputCol = outCol - r + fCol;
             if (inputRow >= 0 && inputRow < numRows) {
                 if (inputCol >= 0 && inputCol < numCols) {
-                    a_b += FILTER[fRow*FILTER_SIZE + fCol] * N_b[inputRow*numCols + inputCol];
-                    a_g += FILTER[fRow*FILTER_SIZE + fCol] * N_g[inputRow*numCols + inputCol];
-                    a_r += FILTER[fRow*FILTER_SIZE + fCol] * N_r[inputRow*numCols + inputCol];
+                    accumulator += FILTER_c[fRow*FILTER_SIZE + fCol] * inputMatrix[inputRow*numCols + inputCol];
                 }
             }
         }
     }
-    outputMatrix[outRow*numCols + outCol] = (unsigned char)(a_b + a_g + a_b);
+    outputMatrix[outRow*numCols + outCol] = (unsigned char)(accumulator);
 }
 
 // Question #5 on homework
 __global__
 void conv_tiled_2D_const_mem_kernel (
-    float* N,
-    float* P,
+    unsigned char* N,
+    unsigned char* P,
     int numCols,
     int numRows
 ) {
     int col = blockIdx.x * OUT_TILE_DIM + threadIdx.x - FILTER_RADIUS;
     int row = blockIdx.x * OUT_TILE_DIM + threadIdx.x - FILTER_RADIUS;
+    
     // loading input tile
     __shared__ float N_s[IN_TILE_DIM][IN_TILE_DIM];
     if(row >= 0 && row < numRows && col >= 0 && col < numCols) {
@@ -142,9 +126,11 @@ void conv_tiled_2D_const_mem_kernel (
         N_s[threadIdx.y][threadIdx.x] = 0.0;
     }
     __syncthreads();
+    
     // Calculating output elements
     int tileCol = threadIdx.x - FILTER_RADIUS;
     int tileRow = threadIdx.y - FILTER_RADIUS;
+    
     // turning off the threads at the edges of the block
     if (col >= 0 && col < numCols && row >= 0 && row < numRows) {
         if (tileCol >= 0 && tileCol < OUT_TILE_DIM && tileRow >=0
@@ -152,7 +138,7 @@ void conv_tiled_2D_const_mem_kernel (
             float Pvalue = 0.0f;
             for (int fRow = 0; fRow < 2*FILTER_RADIUS+1; fRow++){
                 for (int fCol = 0; fCol < 2*FILTER_RADIUS+1; fCol++){
-                    Pvalue += FILTER[fRow*FILTER_SIZE+fCol] * N_s[tileRow+fRow][tileCol+fCol];
+                    Pvalue += FILTER_c[fRow*FILTER_SIZE+fCol] * N_s[tileRow+fRow][tileCol+fCol];
                 }
             }
             P[row*numCols + col] = Pvalue;
@@ -190,14 +176,14 @@ void conv_cached_tiled_2D_const_mem_kernel (
                     threadIdx.y - FILTER_RADIUS + fRow > 0 &&
                     threadIdx.y - FILTER_RADIUS + fRow < TILE_DIM
                 ) {
-                    Pvalue += FILTER[fRow*FILTER_SIZE+fCol]*N_s[threadIdx.y+fRow][threadIdx.x+fCol];
+                    Pvalue += FILTER_c[fRow*FILTER_SIZE+fCol]*N_s[threadIdx.y+fRow][threadIdx.x+fCol];
                 } else {
                     if (row-FILTER_RADIUS+fRow >=0 &&
                         row-FILTER_RADIUS+fRow < numRows &&
                         col-FILTER_RADIUS+fCol >=0 &&
                         col-FILTER_RADIUS+fCol < numCols
                     ) {
-                        Pvalue += FILTER[fRow*FILTER_SIZE+fCol]*N[(row-FILTER_RADIUS+fRow)*numCols+col-FILTER_RADIUS+fCol];
+                        Pvalue += FILTER_c[fRow*FILTER_SIZE+fCol]*N[(row-FILTER_RADIUS+fRow)*numCols+col-FILTER_RADIUS+fCol];
                     }
                 }
             }
@@ -224,29 +210,36 @@ void convolution (
     );
 
     // Perform CUDA computations on deviceMatrix, Launch Kernel
-    conv_2D_basic_kernel<<<
-        gridSize,
-        blockSize
-    >>> (
-        inputMatrix,
-        filterMatrix,
-        outputMatrix,
-        radius,
-        numCols,
-        numRows
-    );
-    // conv_2D_const_mem_kernel<<<
+    // conv_2D_shared_mem_kernel<<<
     //     gridSize,
     //     blockSize
     // >>> (
-    //     red,
-    //     green,
-    //     blue,
+    //     inputMatrix,
+    //     filterMatrix,
     //     outputMatrix,
     //     radius,
     //     numCols,
     //     numRows
     // );
+    // conv_2D_const_mem_kernel<<<
+    //     gridSize,
+    //     blockSize
+    // >>> (
+    //     inputMatrix,
+    //     outputMatrix,
+    //     radius,
+    //     numCols,
+    //     numRows
+    // );
+    conv_tiled_2D_const_mem_kernel<<<
+        gridSize,
+        blockSize
+    >>> (
+        inputMatrix,
+        outputMatrix,
+        numCols,
+        numRows
+    );
 
     checkCudaErrors(
         cudaGetLastError()
@@ -303,9 +296,9 @@ int main() {
     checkCudaErrors(
         cudaMemcpy (d_result, h_result.data(), matrixByteSize, cudaMemcpyHostToDevice)
     );
-    // checkCudaErrors(
-    //     cudaMemcpyToSymbol(FILTER, h_filter, filterByteSize)
-    // );
+    checkCudaErrors(
+        cudaMemcpyToSymbol(FILTER_c, h_filter, filterByteSize)
+    );
 
     convolution (
         d_matrix,
