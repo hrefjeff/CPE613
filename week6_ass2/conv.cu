@@ -9,8 +9,8 @@
 using namespace cv;
 using namespace std;
 
-#define FILTER_RADIUS 1
-#define FILTER_SIZE 3
+#define FILTER_RADIUS 2
+#define FILTER_SIZE 5
 #define IN_TILE_DIM 32
 #define OUT_TILE_DIM ((IN_TILE_DIM) - 2 * (FILTER_RADIUS))
 #define TILE_DIM 32
@@ -115,7 +115,14 @@ void conv_2D_const_mem_kernel (
     outputMatrix[outRow*numCols + outCol] = (unsigned char)(accumulator);
 }
 
-// Question #5 on homework
+/* Question #5 on homework
+ Arithmetic Intesity Equation:
+        OUT_TILE_DIM^2*(2*FILTER_RADIUS+1)^2*2
+        --------------------------------------
+        (OUT_TILE_DIM + 2*FILTER_RADIUS)^2*4
+Example:
+
+*/
 __global__
 void conv_tiled_2D_const_mem_kernel (
     unsigned char* N,
@@ -259,18 +266,18 @@ void convolution (
 
 void init_filter_matrix(float *m, int n) {
     // Guassian Blur filter
-    vector<float> filter = {
-        0.0625, 0.125, 0.0625,
-        0.125, 0.25, 0.125,
-        0.0625, 0.125, 0.0625,
-    };
     // vector<float> filter = {
-    //     1, 4, 5, 4, 1,
-    //     4, 16, 24, 16, 4,
-    //     6, 24, 36, 24, 6,
-    //     4, 16, 24, 16, 4,
-    //     1, 4, 5, 4, 1
+    //     0.0625, 0.125, 0.0625,
+    //     0.125, 0.25, 0.125,
+    //     0.0625, 0.125, 0.0625,
     // };
+    vector<float> filter = {
+        0.00390625, 0.015625, 0.01953125, 0.015625, 0.00390625,
+        0.015625,   0.0625,   0.09375,    0.0625,   0.015625,
+        0.0234375,  0.09375,  0.140625,   0.09375,  0.0234375,
+        0.015625,   0.0625,   0.09375,    0.0625,   0.015625,
+        0.00390625, 0.015625, 0.01953125, 0.015625, 0.00390625
+    };
     for (int i = 0; i < n; i++) {
         for (int j = 0; j < n; j++) {
             m[n * i + j] = filter[n * i + j];
@@ -330,45 +337,45 @@ int main() {
     );
     timer.stop();
 
-    double elapsedTime_ms = timer.elapsedTime_ms();
-    double numberOfFlops = 2 * imageTotalSize;
-    double flopRate = numberOfFlops / (elapsedTime_ms / 1.0e3);
-    double numberOfReads = 2 * imageTotalSize;
-    double numberOfWrites = imageTotalSize;
-    double effectiveBandwidth_bitspersec {
-        (numberOfReads + numberOfWrites) * sizeof(float) * 8 / 
-        (elapsedTime_ms / 1.0e3)
-    };
+    // double elapsedTime_ms = timer.elapsedTime_ms();
+    // double numberOfFlops = 2 * imageTotalSize;
+    // double flopRate = numberOfFlops / (elapsedTime_ms / 1.0e3);
+    // double numberOfReads = 2 * imageTotalSize;
+    // double numberOfWrites = imageTotalSize;
+    // double effectiveBandwidth_bitspersec {
+    //     (numberOfReads + numberOfWrites) * sizeof(float) * 8 / 
+    //     (elapsedTime_ms / 1.0e3)
+    // };
     
     
-    printf (
-    "\n\t- Avg Elapsed Time:             %20.16e Ms\n",
-        elapsedTime_ms / 1.0e3
-    );
-    printf (
-    "\t- Computational Rate:         %20.16e Gflops\n",
-    flopRate / 1e9 
-    );
-    printf (
-    "\t- Effective Bandwidth:        %20.16e Gbps\n",
-    effectiveBandwidth_bitspersec / 1e9 
-    );
-
-    // Copy result from device to host
-    // checkCudaErrors(
-    //     cudaMemcpy (h_result.data(), d_result, matrixByteSize, cudaMemcpyDeviceToHost)
+    // printf (
+    // "\n\t- Avg Elapsed Time:             %20.16e Ms\n",
+    //     elapsedTime_ms / 1.0e3
+    // );
+    // printf (
+    // "\t- Computational Rate:         %20.16e Gflops\n",
+    // flopRate / 1e9 
+    // );
+    // printf (
+    // "\t- Effective Bandwidth:        %20.16e Gbps\n",
+    // effectiveBandwidth_bitspersec / 1e9 
     // );
 
-    // // Copy result from gray matrix into matlab OpenCV input array format
-    // Mat outputImage;
-    // outputImage.create(inputImage.rows, inputImage.cols, CV_8UC1);
-    // copy(h_result.begin(), h_result.end(), outputImage.data);
+    // Copy result from device to host
+    checkCudaErrors(
+        cudaMemcpy (h_result.data(), d_result, matrixByteSize, cudaMemcpyDeviceToHost)
+    );
 
-    // // Write img to gray.jpg
-    // //imwrite("grayboiz.jpg", opencv_output);
-    // imshow("Original", inputImage);
-    // imshow("Reconstructed", outputImage);
-    // waitKey(0);
+    // Copy result from gray matrix into matlab OpenCV input array format
+    Mat outputImage;
+    outputImage.create(inputImage.rows, inputImage.cols, CV_8UC1);
+    copy(h_result.begin(), h_result.end(), outputImage.data);
+
+    // Write img to gray.jpg
+    //imwrite("grayboiz.jpg", opencv_output);
+    imshow("Original", inputImage);
+    imshow("Reconstructed", outputImage);
+    waitKey(0);
 
     // Free memory
     cudaFree(d_matrix);
