@@ -5,6 +5,11 @@ build
 .vscode
 main
 
+# Don't track python files
+*.pyc
+__pycache__/
+__init__.py
+
 # Don't include virtual env
 env/
 
