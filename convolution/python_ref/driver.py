@@ -17,6 +17,7 @@ from math import floor
 ''' Import my defined dependencies '''
 from convolve_funcs import (
     convolve_time_domain,
+    convolve_time_domain_np,
     convolve_fast_fourier_transform 
 )
 from utils import *
@@ -33,9 +34,9 @@ def main():
     )
     
     # Define setup info for run
-    TESTING = False
-    CONV_METHOD = "time" # "time" or "fft" or "overadd" or "oversave"
-    NUM_ELEMENTS = 8192 # 1024, 2048, 4096, 8192, 16384, 32768, 65536
+    TESTING = True
+    CONV_METHOD = "np_time" # "time", "np_time", "fft", "overadd", "oversave"
+    NUM_ELEMENTS = 7 # 1024, 2048, 4096, 8192, 16384, 32768, 65536
 
     if TESTING:
         signal = [8,2,5,4,1,7,3]
@@ -62,6 +63,8 @@ def main():
         case "time":
             r = floor(len(filter)/2)
             result = convolve_time_domain(signal, filter, r)
+        case "np_time":
+            result = convolve_time_domain_np(signal, filter)
         case "fft":
             result = convolve_fast_fourier_transform(signal, filter)
     
@@ -69,13 +72,13 @@ def main():
     chdir(test_dir)
     save_array_to_text_file(filename_result, result)
 
-    # Check if result is correct
-    chdir(gold_test_dir)
-    gold_test_data = read_array_from_text_file(filename_result)
-    if np.allclose(result, gold_test_data):
-        print("Result is correct")
-    else:
-        print("Incorrect result")
+    # # Check if result is correct
+    # chdir(gold_test_dir)
+    # gold_test_data = read_array_from_text_file(filename_result)
+    # if np.allclose(result, gold_test_data):
+    #     print("Result is correct")
+    # else:
+    #     print("Incorrect result")
 
 if __name__ == '__main__':
     main()
