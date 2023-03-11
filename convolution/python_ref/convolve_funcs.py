@@ -2,9 +2,11 @@ import numpy as np
 from scipy import signal
 
 def convolve_time_domain(arr1, arr2, radius):
-    """ Convolve 2 arrays using the numpy method """
+    """ Naive convolve method that convoles arr2 onto arr1 """
 
-    # Create a new array to hold the result
+    # Sets up arrays to work with
+    arr1 = np.pad(arr1, radius, 'constant') # Pad array with 0's
+    arr2 = np.flip(arr2) # If we don't flip array, it's just a correlation
     arr1_len = len(arr1)
     arr2_len = len(arr2)
     result = [0] * (arr1_len)
@@ -26,10 +28,15 @@ def convolve_time_domain_np(arr1, arr2):
     """ Convolve 2 arrays with np's convolve 
         https://numpy.org/doc/stable/reference/generated/numpy.convolve.html#numpy-convolve
     """
-
     return np.convolve(arr1, arr2).tolist()
 
 def convolve_fft_sp(arr1, arr2):
+    '''
+    This is generally much faster than convolve for large arrays (n > ~500),
+    but can be slower when only a few output values are needed, and can only
+    output float arrays (int or object array inputs will be cast to float).
+    '''
+    return signal.fftconvolve(arr1, arr2, mode='full')
 
 def convolve_oa_sp(arr1, arr2):
     ''' Convolve using overlap add method
@@ -41,45 +48,3 @@ def convolve_oa_sp(arr1, arr2):
     arrays (int or object array inputs will be cast to float).
     '''
     return signal.oaconvolve(arr1, arr2)
-
-def fft_v(x):
-    x = np.asarray(x, dtype=float)
-    N = x.shape[0] # Get the number of elements in the array
-    if np.log2(N) % 1 > 0:
-        raise ValueError("must be a power of 2")
-
-    N_min = min(N, 2)
-    
-    n = np.arange(N_min)
-    k = n[:, None]
-    M = np.exp(-2j * np.pi * n * k / N_min) # Calculate the DFT matrix
-    X = np.dot(M, x.reshape((N_min, -1))) # Calculate the DFT
-    while X.shape[0] < N:
-            X_even = X[:, :int(X.shape[1] / 2)]
-            X_odd = X[:, int(X.shape[1] / 2):]
-            terms = np.exp(-1j * np.pi * np.arange(X.shape[0])
-                            / X.shape[0])[:, None]
-            X = np.vstack([X_even + terms * X_odd,
-                        X_even - terms * X_odd])
-    return X.ravel()
-
-def convolve_fast_fourier_transform(arr1, arr2):
-    """ Convolve two arrays using the fast fourier transform
-        The convolution in the time domain is equivalent to
-        multiplication in the frequency domain
-    """
-
-    # Create a new array to hold the result
-    result = [0] * len(arr1)
-
-    # Calculate the FFT of the input arrays
-    fft1 = fft_v(arr1)
-    fft2 = fft_v(arr2)
-
-    # Multiply the FFTs
-    fft_result = fft1 * fft2
-
-    # Calculate the inverse FFT
-    result = np.real(fft_v(fft_result))
-    
-    return result
