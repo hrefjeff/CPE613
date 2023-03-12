@@ -9,11 +9,14 @@ Description : Reference implementations of convolution tequniques
 
 ''' Import built-in dependencies '''
 from os import path, chdir
+import timeit
 
 ''' Import my defined dependencies '''
 from convolve_funcs import (
     convolve_time_domain,
-    convolve_time_domain_np
+    convolve_time_domain_np,
+    convolve_fft,
+    convolve_fft_sp
 )
 from utils import *
 
@@ -29,14 +32,14 @@ def main():
     )
     
     # Define setup info for run
-    TESTING = True
-    CONV_METHOD = "np_time" # "time", "np_time", "fft", "overadd", "oversave"
-    NUM_ELEMENTS = 8 # 1024, 2048, 4096, 8192, 16384, 32768, 65536
+    TESTING = False
+    CONV_METHOD = "time" # "time", "np_time", "fft", "sp_fft" "overadd", "oversave"
+    NUM_ELEMENTS = 1024 # 1024, 2048, 4096, 8192, 16384, 32768, 65536
 
     if TESTING:
         ''' Testing data comes from the book "The Scientist and Engineer's
             Guide to Digital Signal Processing" on page 116'''
-        signal = [0, -1, -1.2, 2, 1.4, 1.4, 0.6, 0, -0.6]
+        signal = [0, -1, -1.2, 2, 1.4, 1.4, 0.6, 0]
         filter = [1, -.5, -.25, -.1]
         filename_result = "result_testdata.txt"
     else:
@@ -56,24 +59,33 @@ def main():
         filter = read_array_from_text_file(filename_2)
 
     # Convolve
+
+    start = timeit.default_timer()
     match CONV_METHOD:
         case "time":
             result = convolve_time_domain(signal, filter)
         case "np_time":
             result = convolve_time_domain_np(signal, filter)
+        case "fft":
+            result = convolve_fft(signal, filter)
+        case "sp_fft":
+            result = convolve_fft_sp(signal, filter)
+    end = timeit.default_timer() - start
     
+    print(f'Convolution time is {end:.1f} ms')
+
     # Save result to file
     chdir(test_dir)
     save_array_to_text_file(filename_result, result)
     # plot_result(result)
     
     # Check if result is correct
-    # chdir(gold_test_dir)
-    # gold_test_data = read_array_from_text_file(filename_result)
-    # if np.allclose(result, gold_test_data):
-    #     print("Result is correct")
-    # else:
-    #     print("Incorrect result")
+    chdir(gold_test_dir)
+    gold_test_data = read_array_from_text_file(f'time_result_{NUM_ELEMENTS}.txt')
+    if np.allclose(result, gold_test_data):
+        print("Result is correct")
+    else:
+        print("Incorrect result")
 
 if __name__ == '__main__':
     main()
