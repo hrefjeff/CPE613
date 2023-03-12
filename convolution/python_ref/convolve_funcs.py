@@ -1,28 +1,29 @@
 import numpy as np
 from scipy import signal
 
-def convolve_time_domain(arr1, arr2, radius):
-    """ Naive convolve method that convoles arr2 onto arr1 """
+def convolve_time_domain(arr1, arr2):
+    """ Naive convolve method that convoles arr2 onto arr1
+        The Scientist and Engineer's Guide to Digital Signal Processing
+        provides an explanation of this on Pg. 116 "The Output Side Algorithm"
+    """
 
     # Sets up arrays to work with
-    arr1 = np.pad(arr1, radius, 'constant') # Pad array with 0's
-    arr2 = np.flip(arr2) # If we don't flip array, it's just a correlation
     arr1_len = len(arr1)
     arr2_len = len(arr2)
-    result = [0] * (arr1_len)
+    output_len = arr1_len + arr2_len - 1
+    output = [0.0] * (output_len)
 
-    for idxInput in range(arr1_len): # Loop over input array
-        startPos = idxInput - radius
-        sum = 0
+    for idxInput in range(output_len): # Loop over input array
+        output[idxInput] = 0.0
         for idxFilter in range(arr2_len): # Loop over convolution filter
+            position = idxInput - idxFilter
             # Check if the positions to add are within the bounds
-            if (startPos + idxFilter) < 0 or (startPos + idxFilter) >= arr1_len:
-                sum += 0
+            if (position < 0) or (position >= arr1_len):
+                pass # Outside of the bounds of calculation, do nothing
             else:
-                sum += arr1[startPos + idxFilter] * arr2[idxFilter]
-        result[idxInput] = sum
+                output[idxInput] = output[idxInput] + arr2[idxFilter] * arr1[idxInput - idxFilter]
         
-    return result
+    return output
 
 def convolve_time_domain_np(arr1, arr2):
     """ Convolve 2 arrays with np's convolve 
