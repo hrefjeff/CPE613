@@ -31,6 +31,69 @@ def convolve_time_domain_np(arr1, arr2):
     """
     return np.convolve(arr1, arr2).tolist()
 
+def fft_vectorized(x):
+    """A vectorized, non-recursive version of the Cooley-Tukey FFT"""
+    x = np.asarray(x, dtype=float)
+    N = x.shape[0]
+
+    if np.log2(N) % 1 > 0:
+        raise ValueError("size of x must be a power of 2")
+
+    # N_min here is equivalent to the stopping condition above,
+    # and should be a power of 2
+    N_min = min(N, 32)
+    
+    # Perform an O[N^2] DFT on all length-N_min sub-problems at once
+    n = np.arange(N_min)
+    k = n[:, None]
+    M = np.exp(-2j * np.pi * n * k / N_min)
+    X = np.dot(M, x.reshape((N_min, -1)))
+
+    # build-up each level of the recursive calculation all at once
+    while X.shape[0] < N:
+        X_even = X[:, :X.shape[1] / 2]
+        X_odd = X[:, X.shape[1] / 2:]
+        factor = np.exp(-1j * np.pi * np.arange(X.shape[0])
+                        / X.shape[0])[:, None]
+        X = np.vstack([X_even + factor * X_odd,
+                       X_even - factor * X_odd])
+
+    return X.ravel()
+
+def pad_zeros_to(x, new_length):
+    """Append new_length - x.shape[0] zeros to x's end via copy."""
+    output = np.zeros((new_length,))
+    output[:x.shape[0]] = x
+    return output
+
+def next_power_of_2(n):
+    return 1 << (int(np.log2(n - 1)) + 1)
+
+def convolve_fft(x_list, h_list, K=None):
+    x = np.array(x_list)
+    h = np.array(h_list)
+    Nx = x.shape[0]
+    Nh = h.shape[0]
+    Ny = Nx + Nh - 1 # output length
+
+    # Make K smallest optimal
+    if K is None:
+        K = next_power_of_2(Ny)
+
+    # Calculate the fast Fourier transforms 
+    # of the time-domain signals
+    X = np.fft.fft(pad_zeros_to(x, K))
+    H = np.fft.fft(pad_zeros_to(h, K))
+
+    # Perform circular convolution in the frequency domain
+    Y = np.multiply(X, H)
+
+    # Go back to time domain
+    y = np.real(np.fft.ifft(Y))
+
+    # Trim the signal to the expected length
+    return y[:Ny]
+
 def convolve_fft_sp(arr1, arr2):
     '''
     This is generally much faster than convolve for large arrays (n > ~500),
