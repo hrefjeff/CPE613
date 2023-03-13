@@ -1,5 +1,13 @@
 # Reference Implementations for Convolution
 
+## Files
+
+1. `driver.py` - script with the main function
+2. `convolve_funcs.py` - implementations of the different convolution methods
+3. `utils.py` - utility functions such as reading/writing from files
+4. `requirements.txt` - python packages required for download into virtualenv
+5. `../test_data_gold` - location for data that we know is correct
+
 ## How to run on fresh environment
 
 1. Ensure Python3 & Pip is installed

@@ -1,5 +1,21 @@
+''' =================================================================
+Author      : Jeffrey Allen
+Class       : CS613, General Purpose GPU Programming
+Assignment  : Semester Project
+Description : Implementations of different convolution methods
+
+Table of Contents:
+
+1. Time Domain
+2. FFT
+3. Overlap Add
+4. Overlap Save
+================================================================='''
+
 import numpy as np
 from scipy import signal
+
+'''=== 1. Time Domain ==='''
 
 def convolve_time_domain(arr1, arr2):
     """ Naive convolve method that convoles arr2 onto arr1
@@ -31,8 +47,12 @@ def convolve_time_domain_np(arr1, arr2):
     """
     return np.convolve(arr1, arr2).tolist()
 
+'''=== 2. FFT ==='''
+
 def fft_vectorized(x):
-    """A vectorized, non-recursive version of the Cooley-Tukey FFT"""
+    """A vectorized, non-recursive version of the Cooley-Tukey FFT
+    https://jakevdp.github.io/blog/2013/08/28/understanding-the-fft/
+    """
     x = np.asarray(x, dtype=float)
     N = x.shape[0]
 
@@ -70,6 +90,8 @@ def next_power_of_2(n):
     return 1 << (int(np.log2(n - 1)) + 1)
 
 def convolve_fft(x_list, h_list, K=None):
+    ''' https://jakevdp.github.io/blog/2013/08/28/understanding-the-fft/
+    '''
     x = np.array(x_list)
     h = np.array(h_list)
     Nx = x.shape[0]
@@ -102,6 +124,8 @@ def convolve_fft_sp(arr1, arr2):
     '''
     return signal.fftconvolve(arr1, arr2, mode='full')
 
+'''=== 3. Overlap Add (TODO) ==='''
+
 def convolve_oa_sp(arr1, arr2):
     ''' Convolve using overlap add method
     https://docs.scipy.org/doc/scipy/reference/generated/scipy.signal.oaconvolve.html#scipy.signal.oaconvolve
@@ -112,3 +136,5 @@ def convolve_oa_sp(arr1, arr2):
     arrays (int or object array inputs will be cast to float).
     '''
     return signal.oaconvolve(arr1, arr2)
+
+'''=== 4. Overlap Save (TODO) ==='''
