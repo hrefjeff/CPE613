@@ -16,3 +16,4 @@ env/
 # Don't track output files that this project makes
 grayboiz.jpg
 test_data/
+cufft
