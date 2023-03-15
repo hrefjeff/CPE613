@@ -62,6 +62,7 @@ continue # continues to the next breakpoint
 info cuda kernels
 info cuda block
 info cuda threads # displays thread info, even an asterisk on which one you're on
+cuda block 1 thread 3 # switch to block x thread x
 ```
 
 ### Print variable at index
