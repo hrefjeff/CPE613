@@ -39,12 +39,29 @@ git clone https://github.com/nvidia/cuda-samples
 
 ## CUDA gdb
 
-### Set breakpoint
+Always set `set cuda coalescing off` to see thread information
+
+### Set breakpoints
 
 ```sh
 break main
 break 21
 break 
+```
+
+### Navigate code
+
+```sh
+run # starts the execution of program
+continue # continues to the next breakpoint
+```
+
+### Print info about threads, blocks, and grids
+
+```sh
+info cuda kernels
+info cuda block
+info cuda threads # displays thread info, even an asterisk on which one you're on
 ```
 
 ### Print variable at index
