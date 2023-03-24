@@ -33,7 +33,7 @@ def main():
     
     # Define setup info for run
     TESTING = False
-    CONV_METHOD = "time" # "time", "np_time", "fft", "sp_fft" "overadd", "oversave"
+    CONV_METHOD = "fft" # "time", "np_time", "fft", "sp_fft" "overadd", "oversave"
     NUM_ELEMENTS = 1024 # 1024, 2048, 4096, 8192, 16384, 32768, 65536
 
     if TESTING:

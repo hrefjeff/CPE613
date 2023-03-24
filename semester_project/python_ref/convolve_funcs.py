@@ -13,6 +13,7 @@ Table of Contents:
 ================================================================='''
 
 import numpy as np
+from numpy import exp
 from scipy import signal
 
 '''=== 1. Time Domain ==='''
@@ -49,14 +50,27 @@ def convolve_time_domain_np(arr1, arr2):
 
 '''=== 2. FFT ==='''
 
-def fft_vectorized(x):
-    """A vectorized, non-recursive version of the Cooley-Tukey FFT
-    https://jakevdp.github.io/blog/2013/08/28/understanding-the-fft/
+def W_N(N,k,n):
+    return exp(-2j * np.pi * k * n / N)
+
+def DFT_slow(x):
+    """Compute the discrete Fourier Transform of the 1D array x
+    http://jakevdp.github.io/blog/2013/08/28/understanding-the-fft/
     """
     x = np.asarray(x, dtype=float)
     N = x.shape[0]
+    n = np.arange(N)
+    k = n.reshape((N, 1))
+    M = W_N(N, k, n)
+    return np.dot(M, x)
 
-    if np.log2(N) % 1 > 0:
+def FFT_vectorized(x):
+    """A vectorized, non-recursive version of the Cooley-Tukey FFT
+    https://inst.eecs.berkeley.edu/~ee123/sp16/Sections/FFT_Demo.html
+    """
+    N = x.shape[0]
+
+    if N % 2 > 0:
         raise ValueError("size of x must be a power of 2")
 
     # N_min here is equivalent to the stopping condition above,
@@ -64,17 +78,16 @@ def fft_vectorized(x):
     N_min = min(N, 32)
     
     # Perform an O[N^2] DFT on all length-N_min sub-problems at once
-    n = np.arange(N_min)
-    k = n[:, None]
-    M = np.exp(-2j * np.pi * n * k / N_min)
-    X = np.dot(M, x.reshape((N_min, -1)))
+    n_idx = np.arange(N_min)
+    k_idx = n_idx[:, None]
+    D = W_N(N_min, n_idx, k_idx)
+    X = np.dot(D, x.reshape((N_min, -1)))
 
     # build-up each level of the recursive calculation all at once
     while X.shape[0] < N:
-        X_even = X[:, :X.shape[1] / 2]
-        X_odd = X[:, X.shape[1] / 2:]
-        factor = np.exp(-1j * np.pi * np.arange(X.shape[0])
-                        / X.shape[0])[:, None]
+        X_even = X[:, :X.shape[1] // 2]
+        X_odd = X[:, X.shape[1] // 2:]
+        factor = W_N(X.shape[0], np.arange(X.shape[0]), 0.5)[:, None]
         X = np.vstack([X_even + factor * X_odd,
                        X_even - factor * X_odd])
 
@@ -90,11 +103,11 @@ def next_power_of_2(n):
     return 1 << (int(np.log2(n - 1)) + 1)
 
 def convolve_fft(x_list, h_list, K=None):
-    ''' https://jakevdp.github.io/blog/2013/08/28/understanding-the-fft/
+    ''' https://thewolfsound.com/fast-convolution-fft-based-overlap-add-overlap-save-partitioned/
     '''
     x = np.array(x_list)
     h = np.array(h_list)
-    Nx = x.shape[0]
+    Nx = x.shape[0] # Simply gets the number of elements in the array
     Nh = h.shape[0]
     Ny = Nx + Nh - 1 # output length
 
@@ -104,8 +117,8 @@ def convolve_fft(x_list, h_list, K=None):
 
     # Calculate the fast Fourier transforms 
     # of the time-domain signals
-    X = np.fft.fft(pad_zeros_to(x, K))
-    H = np.fft.fft(pad_zeros_to(h, K))
+    X = FFT_vectorized(pad_zeros_to(x, K))
+    H = FFT_vectorized(pad_zeros_to(h, K))
 
     # Perform circular convolution in the frequency domain
     Y = np.multiply(X, H)
