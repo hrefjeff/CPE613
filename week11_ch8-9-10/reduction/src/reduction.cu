@@ -72,7 +72,7 @@ __global__ void segmentedCoalescingReduction_kernel (float* input, float* output
     }
 }
 
-// 5 (TODO)
+// 5
 __global__ void sharedMemoryReduction_kernel (float* input, float* output) {
     unsigned int segment = 2*blockDim.x*blockIdx.x;
     unsigned int i = segment + threadIdx.x;
@@ -90,9 +90,12 @@ __global__ void sharedMemoryReduction_kernel (float* input, float* output) {
         __syncthreads();
     }
 
+    if (threadIdx.x == 0) {
+         atomicAdd(output, input_s[0]);
+    }
 }
 
-// 6 (TODO)
+// 6
 __global__ void coarsenedSharedMemoryReduction_kernel (
     float* input,
     float* output
@@ -118,6 +121,10 @@ __global__ void coarsenedSharedMemoryReduction_kernel (
         __syncthreads();
     }
 
+    if (threadIdx.x == 0) {
+         atomicAdd(output, input_s[0]);
+    }
+
 }
 
 void sequentialReduction(float* input, float* output, int N){
@@ -132,7 +139,7 @@ void reduction(float* input, float* output, int N){
     int numOfThreads = 32;
     int numOfBlocks = (N + numOfThreads - 1) / numOfThreads;
 
-    segmentedReduction_kernel<<<numOfBlocks, numOfThreads>>> 
+    coarsenedSharedMemoryReduction_kernel<<<numOfBlocks, numOfThreads>>> 
     (
         input,
         output

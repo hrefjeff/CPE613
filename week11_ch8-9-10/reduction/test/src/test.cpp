@@ -10,7 +10,7 @@ using namespace std;
 
 int main(int argc, char ** argv) {
 
-    int numOfElements = 1000;
+    int numOfElements = 1024;
 
     // Create both host thrust and STL vector
     thrust::host_vector<float> h_thrust_vec(numOfElements);
