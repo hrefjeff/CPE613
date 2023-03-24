@@ -34,8 +34,7 @@ int main(int argc, char ** argv) {
   
     // copy input to device
     checkCudaErrors (
-        cudaMemcpy (
-            d_input,
+        cudaMemcpy (d_input,
             h_stl_vect.data(),
             byteSize_input,
             cudaMemcpyHostToDevice
@@ -50,9 +49,19 @@ int main(int argc, char ** argv) {
         )
     );
 
+    Timer timer;
+    timer.start();
     //float result = hostReduction(h_thrust_vec);
     //sequentialReduction(d_input, d_output, numOfElements);
     reduction(d_input, d_output, numOfElements);
+    timer.stop();
+    
+    double elapsedTime_ms = timer.elapsedTime_ms();
+
+    printf (
+    "\n\t- Avg Elapsed Time:\t\t%20.16e Ms\n",
+        elapsedTime_ms / 1.0e3
+    );
 
     checkCudaErrors (
         cudaMemcpy (
@@ -63,7 +72,7 @@ int main(int argc, char ** argv) {
         )
     );
 
-    cout << h_output << endl;
+    cout << "\tSum of input:\t\t\t" << h_output << endl;
 
     return 0;
 }

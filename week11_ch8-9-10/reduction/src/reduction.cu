@@ -1,4 +1,6 @@
 #include <reduction.h>
+#define BLOCK_DIM 32
+#define COARSE_FACTOR 1
 
 // 0
 float hostReduction (thrust::host_vector<float> input) {
@@ -38,17 +40,81 @@ __global__ void parallelAtomicsReduction_kernel (
     }
 }
 
-// 3
-__global__ void segmentedReduction_kernel (float* input, float* output) {}
+// 3 (TODO)
+__global__ void segmentedReduction_kernel (float* input, float* output) {
+    __shared__ float input_s[BLOCK_DIM];
+    unsigned int segment = 2*blockDim.x*blockIdx.x;
+    unsigned int i = segment + 2*threadIdx.x;
+    for(unsigned int stride = 1; stride <= BLOCK_DIM; stride *= 2) {
+        if(threadIdx.x % stride == 0) {
+            input[i] += input[i + stride];
+        }
+        __syncthreads();
+    }
+    if (threadIdx.x == 0) {
+        *output = input_s[0];
+    }
+}
 
-// 4
-__global__ void segmentedCoalescingReduction_kernel (float* input, float* output) {}
+// 4 (TODO)
+__global__ void segmentedCoalescingReduction_kernel (float* input, float* output) {
+    unsigned int segment = 2*blockDim.x*blockIdx.x;
+    unsigned int i = segment + threadIdx.x;
+    for(unsigned int stride = BLOCK_DIM; stride > 0; stride /= 2) {
+        if(threadIdx.x < stride) {
+            input[i] += input[i + stride];
+        }
+        __syncthreads();
+    }
+}
 
-// 5
-__global__ void sharedMemoryReduction_kernel (float* input, float* output) {}
+// 5 (TODO)
+__global__ void sharedMemoryReduction_kernel (float* input, float* output) {
+    unsigned int segment = 2*blockDim.x*blockIdx.x;
+    unsigned int i = segment + threadIdx.x;
 
-// 6
-__global__ void coarsenedSharedMemoryReduction_kernel (float* input, float* output) {}
+    // Load data to shared memory
+    __shared__ float input_s[BLOCK_DIM];
+    input_s[threadIdx.x] = input[i] + input[i + BLOCK_DIM];
+    __syncthreads();
+
+    // Reduction tree in shared memory
+    for(unsigned int stride = BLOCK_DIM/2; stride > 0; stride /= 2) {
+        if(threadIdx.x < stride) {
+            input_s[threadIdx.x] += input_s[threadIdx.x + stride];
+        }
+        __syncthreads();
+    }
+
+}
+
+// 6 (TODO)
+__global__ void coarsenedSharedMemoryReduction_kernel (
+    float* input,
+    float* output
+) {
+    unsigned int segment = COARSE_FACTOR*2*blockDim.x*blockIdx.x;
+    unsigned int i = segment + threadIdx.x;
+
+    // Load data to shared memory
+    __shared__ float input_s[BLOCK_DIM];
+    float threadSum = 0.0f;
+    for(unsigned int c = 0; c < COARSE_FACTOR*2; ++c) {
+        threadSum += input[i + c*BLOCK_DIM];
+    }
+    input_s[threadIdx.x] = threadSum;
+
+    __syncthreads();
+
+    // Reduction tree in shared memory
+    for(unsigned int stride = BLOCK_DIM/2; stride > 0; stride /= 2) {
+        if(threadIdx.x < stride) {
+            input_s[threadIdx.x] += input_s[threadIdx.x + stride];
+        }
+        __syncthreads();
+    }
+
+}
 
 void sequentialReduction(float* input, float* output, int N){
 
