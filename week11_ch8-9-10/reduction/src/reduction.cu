@@ -40,19 +40,23 @@ __global__ void parallelAtomicsReduction_kernel (
     }
 }
 
-// 3 (TODO)
+// 3
 __global__ void segmentedReduction_kernel (float* input, float* output) {
     __shared__ float input_s[BLOCK_DIM];
     unsigned int segment = 2*blockDim.x*blockIdx.x;
-    unsigned int i = segment + 2*threadIdx.x;
-    for(unsigned int stride = 1; stride <= BLOCK_DIM; stride *= 2) {
-        if(threadIdx.x % stride == 0) {
-            input[i] += input[i + stride];
-        }
+    unsigned int i = segment + threadIdx.x;
+    unsigned int t = threadIdx.x;
+    input_s[t] = input[i] + input[i+BLOCK_DIM];
+
+
+    for(unsigned int stride = blockDim.x/2; stride >=1; stride /=2) {
         __syncthreads();
+        if (t < stride) {
+            input_s[t] += input_s[t+stride];
+        }
     }
-    if (threadIdx.x == 0) {
-        *output = input_s[0];
+    if (t == 0) {
+        atomicAdd(output, input_s[0]);
     }
 }
 
@@ -128,11 +132,10 @@ void reduction(float* input, float* output, int N){
     int numOfThreads = 32;
     int numOfBlocks = (N + numOfThreads - 1) / numOfThreads;
 
-    parallelAtomicsReduction_kernel<<<numOfBlocks, numOfThreads>>> 
+    segmentedReduction_kernel<<<numOfBlocks, numOfThreads>>> 
     (
         input,
-        output,
-        N
+        output
     ); 
   
     checkCudaErrors(cudaGetLastError());
