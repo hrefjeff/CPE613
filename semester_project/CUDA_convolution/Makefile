@@ -2,12 +2,13 @@ CC=gcc
 CXX=g++
 NVCC=nvcc
 
-BLASPATH=/opt/asn/apps/blas_gcc610_avx
-# Local Machine
-CUDAPATH=/usr/local/cuda-12.0
+# Local Laptop
+CUDAPATH=/usr/local/cuda-11.7
+# Local Desktop
+#CUDAPATH=/usr/local/cuda-12.0
 SAMPLESPATH=/cuda-samples/Common
 
-# Alabama ASC
+# Remote Alabama ASC
 # CUDAPATH=/opt/asn/apps/cuda_11.7.0
 # SAMPLESPATH=/samples/common/inc
 # ------- On the DMC, run this to avoid having to type in all the parameters
@@ -20,9 +21,9 @@ NVCCFLAGS=-std=c++11
 #NVCCARCHS=-gencode arch=compute_86,code=sm_86 # Local Machine
 NVCCARCHS=-gencode arch=compute_80,code=sm_80 -gencode arch=compute_70,code=sm_70 # Alabama ASC
 
-INCPATH=-Iconvolution/include -I$(CUDAPATH)/include -I$(GTESTPATH)/include
-LIBPATH=-L$(CUDAPATH)/lib64 -L$(GTESTPATH)/lib64
-RPATH=-Wl,-rpath=`pwd`/build/lib -Wl,-rpath=`pwd`/$(GTESTPATH)/lib64 -Wl,-rpath=`pwd`/$(CUDAPATH)/lib64
+INCPATH=-Iconvolution/include -I$(CUDAPATH)/include
+LIBPATH=-L$(CUDAPATH)/lib64
+RPATH=-Wl,-rpath=`pwd`/build/lib -Wl,-rpath=`pwd`/$(CUDAPATH)/lib64
 LIBS=-lcudart
 
 .PHONY: clean
@@ -42,11 +43,13 @@ build/lib/libTimer.so: Timer/src/Timer.cpp
 
 build/lib/libconvolution.so: convolution/src/convolution.cu
 	@mkdir -p build/.objects/convolution
-	$(NVCC) -pg $(NVCCFLAGS) -Xcompiler -fPIC -Iconvolution/include -I$(CUDAPATH)$(SAMPLESPATH) \
-		-dc -o build/.objects/convolution/convolution.o \
+	$(NVCC) -pg $(NVCCFLAGS) -Xcompiler -fPIC -Iconvolution/include \
+		-I$(CUDAPATH)$(SAMPLESPATH) -dc -o \
+		build/.objects/convolution/convolution.o \
 		convolution/src/convolution.cu
 	$(NVCC) -pg $(NVCCFLAGS) $(NVCCARCHS) -Xcompiler -fPIC \
-		-dlink -o build/.objects/convolution/convolution-dlink.o build/.objects/convolution/convolution.o
+		-dlink -o build/.objects/convolution/convolution-dlink.o \
+		build/.objects/convolution/convolution.o
 	mkdir -p build/lib
 	$(CC) -shared -o build/lib/libconvolution.so build/.objects/convolution/* \
 		-Wl,-rpath=$(CUDAPATH)/lib64 -L$(CUDAPATH)/lib64 -lcudart
@@ -56,12 +59,12 @@ build/lib/libconvolution.so: convolution/src/convolution.cu
 build/bin/convolution_test: build/lib/libTimer.so build/lib/libconvolution.so \
 	convolution/test/src/test.cpp
 	@mkdir -p build/bin
-	$(CXX) -Ibuild/include -I$(CUDAPATH)$(SAMPLESPATH) -I$(BLASPATH) \
+	$(CXX) -Ibuild/include -I$(CUDAPATH)$(SAMPLESPATH) \
 		-I$(CUDAPATH)/include -ITimer/include \
 		-o build/bin/convolution_test convolution/test/src/test.cpp \
 		-Wl,-rpath=$(PWD)/build/lib \
 		-Lbuild/lib -L$(CUDAPATH)/lib64 \
-		-lTimer -lconvolution -lcudart  -lcublas
+		-lTimer -lconvolution -lcudart
 
 clean:
 	rm -rf build
