@@ -2,15 +2,15 @@ CC=gcc
 CXX=g++
 NVCC=nvcc
 
-# Local Laptop
-CUDAPATH=/usr/local/cuda-11.7
-# Local Desktop
+#SAMPLESPATH=/cuda-samples/Common
+# === Local Laptop Settings ===
+#CUDAPATH=/usr/local/cuda-11.7
+# === Local Desktop Settings ===
 #CUDAPATH=/usr/local/cuda-12.0
-SAMPLESPATH=/cuda-samples/Common
 
 # Remote Alabama ASC
-# CUDAPATH=/opt/asn/apps/cuda_11.7.0
-# SAMPLESPATH=/samples/common/inc
+CUDAPATH=/opt/asn/apps/cuda_11.7.0
+SAMPLESPATH=/samples/common/inc
 # ------- On the DMC, run this to avoid having to type in all the parameters
 # echo -ne "gpu\n1\n\n10gb\n1\nampere\nconvolution_test\n" | run_gpu build/bin/convolution_test > /dev/null
 
