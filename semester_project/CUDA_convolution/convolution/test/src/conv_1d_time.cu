@@ -24,7 +24,7 @@
 int main() {
     float *h_input = new float[N];
     float *h_filter = new float[K];
-    float *h_output = new float[N - K + 1];
+    float *h_output = new float[N + K - 1];
     float *d_input, *d_filter, *d_output;
     cudaMalloc((void **)&d_input, N * sizeof(float));
     cudaMalloc((void **)&d_filter, K * sizeof(float));
