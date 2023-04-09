@@ -29,7 +29,7 @@ void convolve_1d (
 ){
 
     int numOfThreads = 32;
-    int numOfBlocks = (N + numOfThreads - 1) / numOfThreads;
+    int numOfBlocks = ((N + K - 1) + numOfThreads - 1) / numOfThreads;
 
     convolve_1d_time_kernel<<<numOfBlocks, numOfThreads>>> 
     (
