@@ -34,6 +34,8 @@ int main() {
         "/home/jeff/code/CPE613/semester_project/test_data_gold/arr1_1024.txt";
     string filter_file_name =
         "/home/jeff/code/CPE613/semester_project/test_data_gold/arr2_1024.txt";
+    const char *output_file_name =
+        "/home/jeff/code/CPE613/semester_project/test_data/cuda_time_1024.txt";
 
     ifstream signal_file(signal_file_name);
     ifstream filter_file(filter_file_name);
@@ -78,11 +80,13 @@ int main() {
         cudaMemcpyDeviceToHost
     );
 
-    cout << endl;
-    for (int i = 0; i < TOTAL_SIZE; i++) {
-        printf ("%d - %20.16e\n", i, h_output[i]);
+    // Save the array to an output file
+    FILE * fp;
+    fp = fopen (output_file_name, "w+");
+    for (int i = 0; i < TOTAL_SIZE; ++i) {
+        fprintf (fp, "%20.16e\n", h_output[i]);
     }
-    cout << endl;
+    fclose(fp);
 
     delete[] h_input;
     delete[] h_filter;
