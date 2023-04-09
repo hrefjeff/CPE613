@@ -7,6 +7,7 @@
 3. `utils.py` - utility functions such as reading/writing from files
 4. `requirements.txt` - python packages required for download into virtualenv
 5. `../test_data_gold` - location for data that we know is correct
+6. `result_checker.py` - script that can be used to check accuracy of output
 
 ## How to run on fresh environment
 
