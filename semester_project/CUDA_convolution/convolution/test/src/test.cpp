@@ -4,51 +4,85 @@
 
 /* Include C++ stuff */
 #include <cmath>
+#include <string.h>
 #include <cstdio>
 #include <cstdlib>
 #include <vector>
 #include <iostream>
+#include <fstream>
 
-#define N 8
-#define K 4
+#define N 1024
+#define K 1024
+
+using namespace std;
 
 int main() {
+
+    int TOTAL_SIZE = N + K - 1;
+
+    // Allocate space on host and device
     float *h_input = new float[N];
     float *h_filter = new float[K];
-    float *h_output = new float[N - K + 1];
+    float *h_output = new float[TOTAL_SIZE];
     float *d_input, *d_filter, *d_output;
     cudaMalloc((void **)&d_input, N * sizeof(float));
     cudaMalloc((void **)&d_filter, K * sizeof(float));
-    cudaMalloc((void **)&d_output, (N + K - 1) * sizeof(float));
+    cudaMalloc((void **)&d_output, TOTAL_SIZE * sizeof(float));
 
-    h_input[0] = 0.0;
-    h_input[1] = -1.0;
-    h_input[2] = -1.2;
-    h_input[3] = 2.0;
-    h_input[4] = 1.4;
-    h_input[5] = 1.4;
-    h_input[6] = 0.6;
-    h_input[7] = 0.0;
+    // Prepare to read signal and filter information from files
+    string signal_file_name =
+        "/home/jeff/code/CPE613/semester_project/test_data_gold/arr1_1024.txt";
+    string filter_file_name =
+        "/home/jeff/code/CPE613/semester_project/test_data_gold/arr2_1024.txt";
 
-    h_filter[0] = 1.0;
-    h_filter[1] = -0.5;
-    h_filter[2] = -0.25;
-    h_filter[3] = -0.1;
+    ifstream signal_file(signal_file_name);
+    ifstream filter_file(filter_file_name);
 
-    int numOfThreads = 32;
-    int numOfBlocks = (N + numOfThreads - 1) / numOfThreads;
+    // Read signal/filter info into host array
+    if (signal_file.is_open()) {
+        int index = 0;
+        float value;
+        while (signal_file >> value) {
+            h_input[index++] = value;
+        }
+        signal_file.close();
+    } else {
+        cerr << "Unable to open signal file." << endl;
+        return 1;
+    }
 
+    if (filter_file.is_open()) {
+        int index = 0;
+        float value;
+        while (filter_file >> value) {
+            h_filter[index++] = value;
+        }
+        filter_file.close();
+    } else {
+        cerr << "Unable to open filter file." << endl;
+        return 1;
+    }
+
+    // Copy data from host to device
     cudaMemcpy(d_input, h_input, N * sizeof(float), cudaMemcpyHostToDevice);
     cudaMemcpy(d_filter, h_filter, K * sizeof(float), cudaMemcpyHostToDevice);
+
+    // Perform convolution
     convolve_1d(d_input, d_filter, d_output, N, K);
-    cudaMemcpy(h_output, d_output, (N + K - 1) * sizeof(float), cudaMemcpyDeviceToHost);
 
-    std::cout << std::endl;
-    for (int i = 0; i < N + K - 1; i++) {
-        printf ("%20.16e\n", h_output[i]);
+    // Copy data from device to host
+    cudaMemcpy(
+        h_output,
+        d_output,
+        TOTAL_SIZE * sizeof(float),
+        cudaMemcpyDeviceToHost
+    );
+
+    cout << endl;
+    for (int i = 0; i < TOTAL_SIZE; i++) {
+        printf ("%d - %20.16e\n", i, h_output[i]);
     }
-    std::cout << std::endl;
-
+    cout << endl;
 
     delete[] h_input;
     delete[] h_filter;
