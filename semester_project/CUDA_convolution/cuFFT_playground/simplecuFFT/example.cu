@@ -99,7 +99,8 @@ int main(int argc, char *argv[]) {
     cudaMemcpyAsync(output.data(), d_output, sizeof(output_type) * output.size(),
                                  cudaMemcpyDeviceToHost, stream);
 
-    cudaStreamSynchronize(stream);
+    // cudaStreamQuery(stream1);   // test if stream is idle
+    cudaStreamSynchronize(stream); // force CPU thread to wait
 
     std::printf("Output array:\n");
     for (auto &i : output) {
