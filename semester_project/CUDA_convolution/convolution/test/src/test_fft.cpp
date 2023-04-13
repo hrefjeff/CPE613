@@ -15,6 +15,9 @@
 #include <cuda_runtime.h>
 #include <cufftXt.h>
 
+typedef float2 Complex;
+static __device__ __host__ inline Complex ComplexMul(Complex, Complex);
+
 #define N 1024
 #define K 1024
 #define BATCH_SIZE 1
@@ -22,7 +25,7 @@
 using namespace std;
 
 bool read_file_into_array(string, float*);
-void multiply_arrays_elementwise(const float*, const float*, float*, int);
+void multiply_arrays_elementwise(const cufftComplex*, const cufftComplex*, cufftComplex*, int);
 
 int main() {
     cufftHandle plan;
@@ -35,15 +38,30 @@ int main() {
     int TOTAL_SIZE = N + K - 1;
 
     // Allocate space on host and device
-    input_type *h_signal = new input_type[N];
-    input_type *h_filter = new input_type[K];
-    output_type *h_output = new output_type[TOTAL_SIZE];
+    float *h_signal = new float[N];
+    cufftComplex* hc_signal = new cufftComplex[N];
 
-    input_type* d_signal = nullptr;
-    input_type* d_filter = nullptr;
+    float *h_filter = new float[K];
+    cufftComplex* hc_filter = new cufftComplex[K];
+    
+    float *h_output = new float[TOTAL_SIZE];
+    cufftComplex *hc_output = new cufftComplex[TOTAL_SIZE];
+
+    float* d_signal = nullptr;
+    cufftComplex* dc_signal = nullptr;
+
+    float* d_filter = nullptr;
+    cufftComplex* dc_filter = nullptr;
+
+    float* dr_output = nullptr;
     cufftComplex* d_output = nullptr;
-    cudaMalloc((void **)&d_signal, N * sizeof(input_type));
-    cudaMalloc((void **)&d_filter, K * sizeof(input_type));
+    cudaMalloc((void **)&d_signal, N * sizeof(float));
+    cudaMalloc((void **)&dc_signal, N * sizeof(cufftComplex));
+    
+    cudaMalloc((void **)&d_filter, K * sizeof(float));
+    cudaMalloc((void **)&dc_filter, K * sizeof(cufftComplex));
+
+    cudaMalloc((void **)&dr_output, TOTAL_SIZE * sizeof(cufftComplex));
     cudaMalloc((void **)&d_output, TOTAL_SIZE * sizeof(cufftComplex));
 
     // Prepare to read signal and filter information from files
@@ -72,29 +90,65 @@ int main() {
     // Step 2. Calculate the fast Fourier transforms of the time-domain
     //         signal and filter
     cufftExecR2C(plan, (cufftReal*)d_signal, d_output);
-    cudaMemcpy(h_signal, d_output, N * sizeof(float), cudaMemcpyDeviceToHost);
+    cudaMemcpyAsync(hc_signal, d_output, sizeof(cufftComplex) * K,
+                                 cudaMemcpyDeviceToHost, stream);
+
+    std::printf("Signal array:\n");
+    for (int i = 0; i < 5; i++) {
+        std::printf("%f + %fj\n", hc_signal[i].x, hc_signal[i].y);
+    }
+    std::printf("=====\n");
+
+    cudaStreamSynchronize(stream); // force CPU thread to wait
 
     cufftExecR2C(plan, (cufftReal*)d_filter, d_output);
-    cudaMemcpy(h_filter, d_output, N * sizeof(float), cudaMemcpyDeviceToHost);
+    cudaMemcpyAsync(hc_filter, d_output, sizeof(cufftComplex) * K,
+                                 cudaMemcpyDeviceToHost, stream);
 
+    std::printf("Filter array:\n");
+    for (int i = 0; i < 5; i++) {
+        std::printf("%f + %fj\n", hc_filter[i].x, hc_filter[i].y);
+    }
+    std::printf("=====\n");
+
+    cudaStreamSynchronize(stream); // force CPU thread to wait
+    
     // Step 3. Perform circular convolution in the frequency domain
 
     // Perform convolution (multiply 2 matricies together)
     // First do it on the host, then optimize to perform on host
-    multiply_arrays_elementwise(h_signal, h_filter, h_signal, K);
+    multiply_arrays_elementwise(hc_signal, hc_filter, hc_output, K);
+
+    std::printf("Host complex output array:\n");
+    for (int i = 0; i < 5; i++) {
+        std::printf("%f + %fj\n", hc_output[i].x, hc_output[i].y);
+    }
+    std::printf("=====\n");
 
     // Step 4. Go back to time domain
 
     // Destroy the cuFFT plan and create a new one for the inverse FFT
     cufftDestroy(plan);
-    cufftPlan1d(&plan, TOTAL_SIZE, CUFFT_C2R, 1);
-    cudaMemcpy(d_signal, h_signal, N * sizeof(float), cudaMemcpyHostToDevice);
+    cufftPlan1d(&plan, TOTAL_SIZE, CUFFT_C2R, BATCH_SIZE);
+    cudaMemcpyAsync(d_output, hc_output, sizeof(cufftComplex) * K,
+                                 cudaMemcpyHostToDevice, stream);
+
+    cudaStreamSynchronize(stream); // force CPU thread to wait
 
     // Execute the inverse FFT on the result
-    cufftExecC2R(plan, d_output, (cufftReal*)d_signal);
+    cufftExecC2R(plan, d_output, (cufftReal*)dr_output);
 
     // Copy the result back to the host
-    cudaMemcpy(h_output, d_output, TOTAL_SIZE * sizeof(float), cudaMemcpyDeviceToHost);
+    cudaMemcpyAsync(h_output, dr_output, sizeof(cufftComplex) * N,
+                                 cudaMemcpyDeviceToHost, stream);
+
+    cudaStreamSynchronize(stream); // force CPU thread to wait
+
+    std::printf("Host real output array:\n");
+    for (int i = 0; i < 5; i++) {
+        std::printf("%f\n", h_output[i]);
+    }
+    std::printf("=====\n");
 
     // Save the array to an output file
     FILE * fp;
@@ -106,6 +160,7 @@ int main() {
 
     delete[] h_signal;
     delete[] h_filter;
+    delete[] h_output;
     cudaFree(d_signal);
     cudaFree(d_filter);
     cudaFree(d_output);
@@ -129,12 +184,20 @@ bool read_file_into_array(string filename, float* arr) {
     return true;
 }
 
-void multiply_arrays_elementwise(const float* array1,
-                                 const float* array2,
-                                 float* result,
+void multiply_arrays_elementwise(const cufftComplex* array1,
+                                 const cufftComplex* array2,
+                                 cufftComplex* result,
                                  int length
                                 ) {
     for (int i = 0; i < length; ++i) {
-        result[i] = array1[i] * array2[i];
+        result[i] = ComplexMul(array1[i], array2[i]);
     }
+}
+
+// Complex multiplication
+static __device__ __host__ inline Complex ComplexMul(Complex a, Complex b) {
+  Complex c;
+  c.x = a.x * b.x - a.y * b.y;
+  c.y = a.x * b.y + a.y * b.x;
+  return c;
 }
