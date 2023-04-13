@@ -1,4 +1,4 @@
-''' =================================================================
+""" =================================================================
 Author      : Jeffrey Allen
 Class       : CS613, General Purpose GPU Programming
 Assignment  : Semester Project
@@ -10,13 +10,13 @@ Table of Contents:
 2. FFT
 3. Overlap Add
 4. Overlap Save
-================================================================='''
+================================================================="""
 
 import numpy as np
 from numpy import exp
 from scipy import signal
 
-'''=== 1. Time Domain ==='''
+"""=== 1. Time Domain ==="""
 
 def convolve_time_domain(arr1, arr2):
     """ Naive convolve method that convoles arr2 onto arr1
@@ -48,7 +48,7 @@ def convolve_time_domain_np(arr1, arr2):
     """
     return np.convolve(arr1, arr2).tolist()
 
-'''=== 2. FFT ==='''
+"""=== 2. FFT ==="""
 
 def W_N(N,k,n):
     return exp(-2j * np.pi * k * n / N)
@@ -103,8 +103,9 @@ def next_power_of_2(n):
     return 1 << (int(np.log2(n - 1)) + 1)
 
 def convolve_fft(x_list, h_list, K=None):
-    ''' https://thewolfsound.com/fast-convolution-fft-based-overlap-add-overlap-save-partitioned/
-    '''
+    """
+    https://thewolfsound.com/fast-convolution-fft-based-overlap-add-overlap-save-partitioned/
+    """
     x = np.array(x_list)
     h = np.array(h_list)
     Nx = x.shape[0] # Simply gets the number of elements in the array
@@ -130,24 +131,24 @@ def convolve_fft(x_list, h_list, K=None):
     return y[:Ny]
 
 def convolve_fft_sp(arr1, arr2):
-    '''
+    """
     This is generally much faster than convolve for large arrays (n > ~500),
     but can be slower when only a few output values are needed, and can only
     output float arrays (int or object array inputs will be cast to float).
-    '''
+    """
     return signal.fftconvolve(arr1, arr2, mode='full')
 
-'''=== 3. Overlap Add (TODO) ==='''
+"""=== 3. Overlap Add (TODO) ==="""
 
 def convolve_oa_sp(arr1, arr2):
-    ''' Convolve using overlap add method
+    """ Convolve using overlap add method
     https://docs.scipy.org/doc/scipy/reference/generated/scipy.signal.oaconvolve.html#scipy.signal.oaconvolve
     This is generally much faster than convolve for large arrays (n > ~500),
     and generally much faster than fftconvolve when one array is much larger
     than the other, but can be slower when only a few output values are needed
     or when the arrays are very similar in shape, and can only output float
     arrays (int or object array inputs will be cast to float).
-    '''
+    """
     return signal.oaconvolve(arr1, arr2)
 
-'''=== 4. Overlap Save (TODO) ==='''
+"""=== 4. Overlap Save (TODO) ==="""

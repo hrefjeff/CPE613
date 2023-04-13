@@ -4,7 +4,7 @@
 Author      : Jeffrey Allen
 Class       : CS613, General Purpose GPU Programming
 Assignment  : Semester Project
-Description : Reference implementations of convolution tequniques
+Description : Reference implementations of convolution techniques
 ================================================================='''
 
 ''' Import built-in dependencies '''
