@@ -2,15 +2,15 @@ CC=gcc
 CXX=g++
 NVCC=nvcc
 
-#SAMPLESPATH=/cuda-samples/Common
+SAMPLESPATH=/cuda-samples/Common
 # === Local Laptop Settings ===
 #CUDAPATH=/usr/local/cuda-11.7
 # === Local Desktop Settings ===
-#CUDAPATH=/usr/local/cuda-12.0
+CUDAPATH=/usr/local/cuda-12.0
 
 # Remote Alabama ASC
-CUDAPATH=/opt/asn/apps/cuda_11.7.0
-SAMPLESPATH=/samples/common/inc
+#CUDAPATH=/opt/asn/apps/cuda_11.7.0
+#SAMPLESPATH=/samples/common/inc
 # ------- On the DMC, run this to avoid having to type in all the parameters
 # echo -ne "gpu\n1\n\n10gb\n1\nampere\nconvolution_test\n" | run_gpu build/bin/convolution_test > /dev/null
 
@@ -57,14 +57,14 @@ build/lib/libconvolution.so: convolution/src/convolution.cu
 	@ln -sf ../../convolution/include/convolution.h build/include/convolution.h
 
 build/bin/convolution_test: build/lib/libTimer.so build/lib/libconvolution.so \
-	convolution/test/src/test.cpp
+	convolution/test/src/test_fft.cpp
 	@mkdir -p build/bin
 	$(CXX) -Ibuild/include -I$(CUDAPATH)$(SAMPLESPATH) \
 		-I$(CUDAPATH)/include -ITimer/include \
-		-o build/bin/convolution_test convolution/test/src/test.cpp \
+		-o build/bin/convolution_test convolution/test/src/test_fft.cpp \
 		-Wl,-rpath=$(PWD)/build/lib \
 		-Lbuild/lib -L$(CUDAPATH)/lib64 \
-		-lTimer -lconvolution -lcudart
+		-lTimer -lconvolution -lcudart -lcufft
 
 clean:
 	rm -rf build
