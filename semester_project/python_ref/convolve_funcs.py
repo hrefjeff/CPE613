@@ -121,6 +121,14 @@ def convolve_fft(x_list, h_list, K=None):
     X = FFT_vectorized(pad_zeros_to(x, K))
     H = FFT_vectorized(pad_zeros_to(h, K))
 
+    print("====Printing signal====")
+    for i in range(0,5):
+        print(X[i])
+
+    print("====Filter signal====")
+    for i in range(0,5):
+        print(H[i])
+
     # Perform circular convolution in the frequency domain
     Y = np.multiply(X, H)
 
