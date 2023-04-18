@@ -16,6 +16,8 @@ import numpy as np
 from numpy import exp
 from scipy import signal
 
+from utils import *
+
 """=== 1. Time Domain ==="""
 
 def convolve_time_domain(arr1, arr2):
@@ -121,13 +123,12 @@ def convolve_fft(x_list, h_list, K=None):
     X = FFT_vectorized(pad_zeros_to(x, K))
     H = FFT_vectorized(pad_zeros_to(h, K))
 
-    print("====Printing signal====")
-    for i in range(0,5):
-        print(X[i])
-
-    print("====Filter signal====")
-    for i in range(0,5):
-        print(H[i])
+    # ======= Debugging ============
+    debug = False
+    if (debug):
+        save_array_to_text_file("fft_sig.txt",X)
+        save_array_to_text_file("fft_fil.txt",H)
+    # ==============================
 
     # Perform circular convolution in the frequency domain
     Y = np.multiply(X, H)
