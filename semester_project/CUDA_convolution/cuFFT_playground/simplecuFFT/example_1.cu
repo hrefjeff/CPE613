@@ -60,12 +60,15 @@
 using namespace std;
 
 typedef float2 cufftComplex;
-static __device__ __host__ inline cufftComplex ComplexMul(cufftComplex, cufftComplex);
 
-__global__ void complexMulGPUKernel(
-                        cufftComplex* output,
+static __device__ __host__ inline
+cufftComplex ComplexMul(cufftComplex, cufftComplex);
+
+__global__ 
+void complexMulGPUKernel(
                         cufftComplex* input1,
                         cufftComplex* input2,
+                        cufftComplex* output,
                         int size) {
     for (int idx = threadIdx.x + blockDim.x * blockIdx.x;
         idx < size;
@@ -75,11 +78,15 @@ __global__ void complexMulGPUKernel(
     }
 }
 
-void complexMulGPU(cufftComplex* output, cufftComplex* input1, cufftComplex* input2, int size){
-    int blockSize = 512;
+void complexMulGPU(
+        cufftComplex* input1,
+        cufftComplex* input2,
+        cufftComplex* output,
+        int size) {
+    int blockSize = 32;
     int gridSize = (size + blockSize - 1) / blockSize;
 
-    complexMulGPUKernel<<<gridSize, blockSize>>>(output, input1, input2, size);
+    complexMulGPUKernel<<<gridSize, blockSize>>>(input1, input2, output, size);
 
     checkCudaErrors(cudaGetLastError());
 }
@@ -102,22 +109,22 @@ int main(int argc, char *argv[]) {
 
     using scalar_type = float;
     using input_type = scalar_type;
-    using output_type = std::complex<scalar_type>;
+    using output_type = complex<scalar_type>;
 
     // Filter section to convert to fft
 
-    std::vector<input_type> h_signal(fft_size, 0);
-    std::vector<cufftComplex> h_signal_fft(static_cast<int>((fft_size / 2 + 1)));
+    vector<input_type> h_signal(fft_size, 0);
+    vector<cufftComplex> h_signal_fft(static_cast<int>((fft_size / 2 + 1)));
 
     for (int i = 0; i < fft_size; i++) {
         h_signal[i] = static_cast<input_type>(i);
     }
 
-    std::printf("Signal array:\n");
+    printf("Signal array:\n");
     for (auto &i : h_signal) {
-        std::printf("%f\n", i);
+        printf("%f\n", i);
     }
-    std::printf("=====\n");
+    printf("=====\n");
 
     input_type *d_signal = nullptr;
     cufftComplex *d_signal_fft = nullptr;
@@ -142,28 +149,28 @@ int main(int argc, char *argv[]) {
     // cudaStreamQuery(stream1);   // test if stream is idle
     cudaStreamSynchronize(stream); // force CPU thread to wait
 
-    std::printf("Signal FFT array:\n");
+    printf("Signal FFT array:\n");
     for (auto &i : h_signal_fft) {
-        std::printf("%f + %fj\n", i.x, i.y);
+        printf("%f + %fj\n", i.x, i.y);
     }
-    std::printf("=====\n");
+    printf("=====\n");
 
     cufftDestroy(plan1);
 
     // =================== Filter Section ===================
 
-    std::vector<input_type> h_filter(fft_size, 0);
-    std::vector<cufftComplex> h_filter_fft(static_cast<int>((fft_size / 2 + 1)));
+    vector<input_type> h_filter(fft_size, 0);
+    vector<cufftComplex> h_filter_fft(static_cast<int>((fft_size / 2 + 1)));
 
     for (int i = 0; i < fft_size; i++) {
         h_filter[i] = static_cast<input_type>(i);
     }
 
-    std::printf("Filter array:\n");
+    printf("Filter array:\n");
     for (auto &i : h_filter) {
-        std::printf("%f\n", i);
+        printf("%f\n", i);
     }
-    std::printf("=====\n");
+    printf("=====\n");
 
     input_type *d_filter = nullptr;
     cufftComplex *d_filter_fft = nullptr;
@@ -188,54 +195,66 @@ int main(int argc, char *argv[]) {
     // cudaStreamQuery(stream1);   // test if stream is idle
     cudaStreamSynchronize(stream); // force CPU thread to wait
 
-    std::printf("Filter FFT array:\n");
+    printf("Filter FFT array:\n");
     for (auto &i : h_filter_fft) {
-        std::printf("%f + %fj\n", i.x, i.y);
+        printf("%f + %fj\n", i.x, i.y);
     }
-    std::printf("=====\n");
+    printf("=====\n");
 
     cufftDestroy(plan2);
 
     // Multiplication section
-    std::vector<cufftComplex> h_product_fft(static_cast<int>((fft_size / 2 + 1)));
-    multiply_arrays_elementwise(h_signal_fft.data(), h_filter_fft.data(), h_product_fft.data(), static_cast<int>((fft_size / 2 + 1)));
+    vector<cufftComplex> h_product_fft(static_cast<int>((fft_size / 2 + 1)));
+    cufftComplex *d_product_fft = nullptr;
+    cudaMalloc(reinterpret_cast<void **>(&d_product_fft),
+                sizeof(output_type) * static_cast<int>((fft_size / 2 + 1)));
+    complexMulGPU(
+        d_signal_fft,
+        d_filter_fft,
+        d_product_fft,
+        static_cast<int>((fft_size / 2 + 1))
+    );
 
-    std::printf("Multiplied signal+filter result array:\n");
+    cudaMemcpyAsync(h_product_fft.data(),
+                    d_product_fft,
+                    sizeof(output_type) * static_cast<int>((fft_size / 2 + 1)),
+                    cudaMemcpyDeviceToHost,
+                    stream
+    );
+
+    printf("Multiplied signal+filter result array:\n");
     for (auto &i : h_product_fft) {
-        std::printf("%f + %fj\n", i.x, i.y);
+        printf("%f + %fj\n", i.x, i.y);
     }
-    std::printf("=====\n");
+    printf("=====\n");
 
     // Perform inverse
 
     cufftCreate(&plan3);
     cufftPlan1d(&plan3, h_product_fft.size(), CUFFT_C2R, batch_size);
 
-    cufftComplex* d_product_fft = nullptr;
-    cudaMalloc(reinterpret_cast<void **>(&d_product_fft), sizeof(cufftComplex) * static_cast<int>((fft_size / 2 + 1)));
-    cudaMemcpyAsync(d_product_fft, h_product_fft.data(), sizeof(cufftComplex) * static_cast<int>((fft_size / 2 + 1)),
-                                 cudaMemcpyHostToDevice, stream);
-
     // Execute the inverse FFT on the result
     cufftReal* d_result = nullptr;
     cudaMalloc(reinterpret_cast<void **>(&d_result), sizeof(cufftReal) * fft_size);
     cufftExecC2R(plan3, d_product_fft, (cufftReal*)d_result);
 
-    std::vector<input_type> h_result(fft_size, 0);
+    vector<input_type> h_result(fft_size, 0);
     cudaMemcpyAsync(h_result.data(), d_result, sizeof(cufftReal) * fft_size,
                                  cudaMemcpyDeviceToHost, stream);
 
-    std::printf("Real result array:\n");
+    printf("Real result array:\n");
     for (auto &i : h_result) {
-        std::printf("%f\n", i);
+        printf("%f\n", i);
     }
-    std::printf("=====\n");
+    printf("=====\n");
     
     /* free resources */
     cudaFree(d_signal);
     cudaFree(d_signal_fft);
     cudaFree(d_filter);
     cudaFree(d_filter_fft);
+    cudaFree(d_result);
+    cudaFree(d_product_fft);
 
     cudaStreamDestroy(stream);
 
@@ -245,11 +264,12 @@ int main(int argc, char *argv[]) {
 }
 
 // Complex multiplication
-static __device__ __host__ inline cufftComplex ComplexMul(cufftComplex a, cufftComplex b) {
-  cufftComplex c;
-  c.x = a.x * b.x - a.y * b.y;
-  c.y = a.x * b.y + a.y * b.x;
-  return c;
+static __device__ __host__ inline
+cufftComplex ComplexMul(cufftComplex a, cufftComplex b) {
+    cufftComplex c;
+    c.x = a.x * b.x - a.y * b.y;
+    c.y = a.x * b.y + a.y * b.x;
+    return c;
 }
 
 void multiply_arrays_elementwise(const cufftComplex* array1,
