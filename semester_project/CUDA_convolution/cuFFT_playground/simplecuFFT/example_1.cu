@@ -229,7 +229,6 @@ int main(int argc, char *argv[]) {
     printf("=====\n");
 
     // Perform inverse
-
     cufftCreate(&plan3);
     cufftPlan1d(&plan3, h_product_fft.size(), CUFFT_C2R, batch_size);
 

@@ -57,12 +57,12 @@ build/lib/libconvolution.so: convolution/src/convolution.cu
 	@ln -sf ../../convolution/include/convolution.h build/include/convolution.h
 
 build/bin/convolution_test: build/lib/libTimer.so build/lib/libconvolution.so \
-	convolution/test/src/test_fft.cpp
+	convolution/test/src/test_fft.cu
 	@mkdir -p build/bin
-	$(CXX) -Ibuild/include -I$(CUDAPATH)$(SAMPLESPATH) \
+	$(NVCC) -Ibuild/include -I$(CUDAPATH)$(SAMPLESPATH) \
 		-I$(CUDAPATH)/include -ITimer/include \
-		-o build/bin/convolution_test convolution/test/src/test_fft.cpp \
-		-Wl,-rpath=$(PWD)/build/lib \
+		-o build/bin/convolution_test convolution/test/src/test_fft.cu \
+		-Xlinker=-rpath=$(PWD)/build/lib \
 		-Lbuild/lib -L$(CUDAPATH)/lib64 \
 		-lTimer -lconvolution -lcudart -lcufft
 

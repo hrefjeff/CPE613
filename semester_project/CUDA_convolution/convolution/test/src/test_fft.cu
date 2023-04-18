@@ -25,7 +25,93 @@ static __device__ __host__ inline Complex ComplexMul(Complex, Complex);
 using namespace std;
 
 bool read_file_into_array(string, float*);
-void multiply_arrays_elementwise(const cufftComplex*, const cufftComplex*, cufftComplex*, int);
+//void multiply_arrays_elementwise(const cufftComplex*, const cufftComplex*, cufftComplex*, int);
+
+__global__ void complexMulGPUKernel(cufftComplex* output,
+                            cufftComplex* input1, cufftComplex* input2, int size){
+                            
+    for (int idx = threadIdx.x + blockDim.x * blockIdx.x;
+        idx < size;
+        idx += blockDim.x * gridDim.x
+    ){
+        output[idx] = ComplexMul(input1[idx], input2[idx]);
+    }
+}
+
+void complexMulGPU(cufftComplex* output, cufftComplex* input1, cufftComplex* input2, int size){
+    int blockSize = 512;
+    int gridSize = (size + blockSize - 1) / blockSize;
+
+    complexMulGPUKernel<<<gridSize, blockSize>>>(output, input1, input2, size);
+
+    checkCudaErrors(cudaGetLastError());
+}
+
+template <typename T>
+void dataTypeWriter(FILE* filePtr);
+
+template<>
+void dataTypeWriter<double>(FILE* filePtr){
+    fprintf(filePtr, "double\n");
+}
+
+template<>
+void dataTypeWriter<cufftComplex>(FILE* filePtr){
+    fprintf(filePtr, "complex\n");
+}
+
+template<typename T>
+void typeSpecificfprintf(FILE* fptr, T const & data);
+
+template<>
+void typeSpecificfprintf<cufftComplex>(FILE* fptr, cufftComplex const & data){
+
+    fprintf(fptr, "%20.16f %20.16f\n", data.x, data.y);
+
+}
+
+template<>
+void typeSpecificfprintf<double>(FILE* fptr, double const & data){
+
+    fprintf(fptr, "%20.16f\n", data);
+
+}
+
+template<typename T>
+void dumpGPUDataToFile(T* devicePtrToData, vector<int> dimensionsOfData, string filename){
+    checkCudaErrors(cudaDeviceSynchronize()); // force GPU thread to wait
+
+    int totalNumElements = 1;
+    for(auto elts : dimensionsOfData) {
+        totalNumElements *= elts;
+    }
+
+    vector<T> hostData(totalNumElements, T{0});
+
+    checkCudaErrors(cudaMemcpy(
+        hostData.data(),
+        devicePtrToData,
+        totalNumElements * sizeof(T),
+        cudaMemcpyDeviceToHost
+    ));
+
+
+    // size of vector of dims
+    FILE* filePtr = fopen(filename.c_str(), "w");
+    // write how many dims we have
+    fprintf(filePtr, "%zu\n", dimensionsOfData.size());
+    for(auto elts : dimensionsOfData) {
+        fprintf(filePtr,"%d\n", elts);
+    }
+
+    dataTypeWriter<T>(filePtr);
+
+    for(auto elt : hostData) {
+        // support multiple types or use C++
+        typeSpecificfprintf(filePtr, elt);
+    }
+    fclose(filePtr);
+}
 
 int main() {
     cufftHandle plan;
@@ -93,6 +179,8 @@ int main() {
     cudaMemcpyAsync(hc_signal, d_output, sizeof(cufftComplex) * K,
                                  cudaMemcpyDeviceToHost, stream);
 
+    dumpGPUDataToFile(d_output, {N,1}, "test.txt");
+
     std::printf("Signal array:\n");
     for (int i = 0; i < 5; i++) {
         std::printf("%f + %fj\n", hc_signal[i].x, hc_signal[i].y);
@@ -117,7 +205,8 @@ int main() {
 
     // Perform convolution (multiply 2 matricies together)
     // First do it on the host, then optimize to perform on host
-    multiply_arrays_elementwise(hc_signal, hc_filter, hc_output, K);
+    //complexMulGPU();
+    //multiply_arrays_elementwise(hc_signal, hc_filter, hc_output, K);
 
     std::printf("Host complex output array:\n");
     for (int i = 0; i < 5; i++) {
@@ -184,15 +273,15 @@ bool read_file_into_array(string filename, float* arr) {
     return true;
 }
 
-void multiply_arrays_elementwise(const cufftComplex* array1,
-                                 const cufftComplex* array2,
-                                 cufftComplex* result,
-                                 int length
-                                ) {
-    for (int i = 0; i < length; ++i) {
-        result[i] = ComplexMul(array1[i], array2[i]);
-    }
-}
+// void multiply_arrays_elementwise(const cufftComplex* array1,
+//                                  const cufftComplex* array2,
+//                                  cufftComplex* result,
+//                                  int length
+//                                 ) {
+//     for (int i = 0; i < length; ++i) {
+//         result[i] = ComplexMul(array1[i], array2[i]);
+//     }
+// }
 
 // Complex multiplication
 static __device__ __host__ inline Complex ComplexMul(Complex a, Complex b) {
