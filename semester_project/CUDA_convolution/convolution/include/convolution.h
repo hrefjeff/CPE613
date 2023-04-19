@@ -15,7 +15,7 @@ void complexMulGPU(cufftComplex*, cufftComplex*, cufftComplex* , int);
 
 // Utility functions
 
-bool read_file_into_vector(std::string fname, std::vector<float> arr);
+bool read_file_into_vector(std::string fname, std::vector<float> & arr);
 
 template <typename T>
 void dataTypeWriter(FILE*);

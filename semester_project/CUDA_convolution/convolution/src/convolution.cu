@@ -80,7 +80,7 @@ void complexMulGPU(
     checkCudaErrors(cudaGetLastError());
 }
 
-bool read_file_into_vector(std::string filename, std::vector<float> arr) {
+bool read_file_into_vector(std::string filename, std::vector<float>& arr) {
     std::ifstream the_file(filename);
 
     if (the_file.is_open()) {
