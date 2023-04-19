@@ -3,9 +3,6 @@
 #include <string.h>
 #include <cstdio>
 #include <cstdlib>
-#include <vector>
-#include <iostream>
-#include <fstream>
 
 /* Include my stuff */
 #include <convolution.h>
@@ -15,103 +12,11 @@
 #include <cuda_runtime.h>
 #include <cufftXt.h>
 
-typedef float2 Complex;
-static __device__ __host__ inline Complex ComplexMul(Complex, Complex);
-
 #define N 1024
 #define K 1024
 #define BATCH_SIZE 1
 
 using namespace std;
-
-bool read_file_into_array(string, float*);
-//void multiply_arrays_elementwise(const cufftComplex*, const cufftComplex*, cufftComplex*, int);
-
-__global__ void complexMulGPUKernel(cufftComplex* output,
-                            cufftComplex* input1, cufftComplex* input2, int size){
-                            
-    for (int idx = threadIdx.x + blockDim.x * blockIdx.x;
-        idx < size;
-        idx += blockDim.x * gridDim.x
-    ){
-        output[idx] = ComplexMul(input1[idx], input2[idx]);
-    }
-}
-
-void complexMulGPU(cufftComplex* output, cufftComplex* input1, cufftComplex* input2, int size){
-    int blockSize = 512;
-    int gridSize = (size + blockSize - 1) / blockSize;
-
-    complexMulGPUKernel<<<gridSize, blockSize>>>(output, input1, input2, size);
-
-    checkCudaErrors(cudaGetLastError());
-}
-
-template <typename T>
-void dataTypeWriter(FILE* filePtr);
-
-template<>
-void dataTypeWriter<double>(FILE* filePtr){
-    fprintf(filePtr, "double\n");
-}
-
-template<>
-void dataTypeWriter<cufftComplex>(FILE* filePtr){
-    fprintf(filePtr, "complex\n");
-}
-
-template<typename T>
-void typeSpecificfprintf(FILE* fptr, T const & data);
-
-template<>
-void typeSpecificfprintf<cufftComplex>(FILE* fptr, cufftComplex const & data){
-
-    fprintf(fptr, "%20.16f %20.16f\n", data.x, data.y);
-
-}
-
-template<>
-void typeSpecificfprintf<double>(FILE* fptr, double const & data){
-
-    fprintf(fptr, "%20.16f\n", data);
-
-}
-
-template<typename T>
-void dumpGPUDataToFile(T* devicePtrToData, vector<int> dimensionsOfData, string filename){
-    checkCudaErrors(cudaDeviceSynchronize()); // force GPU thread to wait
-
-    int totalNumElements = 1;
-    for(auto elts : dimensionsOfData) {
-        totalNumElements *= elts;
-    }
-
-    vector<T> hostData(totalNumElements, T{0});
-
-    checkCudaErrors(cudaMemcpy(
-        hostData.data(),
-        devicePtrToData,
-        totalNumElements * sizeof(T),
-        cudaMemcpyDeviceToHost
-    ));
-
-
-    // size of vector of dims
-    FILE* filePtr = fopen(filename.c_str(), "w");
-    // write how many dims we have
-    fprintf(filePtr, "%zu\n", dimensionsOfData.size());
-    for(auto elts : dimensionsOfData) {
-        fprintf(filePtr,"%d\n", elts);
-    }
-
-    dataTypeWriter<T>(filePtr);
-
-    for(auto elt : hostData) {
-        // support multiple types or use C++
-        typeSpecificfprintf(filePtr, elt);
-    }
-    fclose(filePtr);
-}
 
 int main() {
     cufftHandle plan;
@@ -254,39 +159,4 @@ int main() {
     cudaFree(d_filter);
     cudaFree(d_output);
     return 0;
-}
-
-bool read_file_into_array(string filename, float* arr) {
-    ifstream the_file(filename);
-
-    if (the_file.is_open()) {
-        int index = 0;
-        float value;
-        while (the_file >> value) {
-            arr[index++] = (float)(value);
-        }
-        the_file.close();
-    } else {
-        cerr << "Unable to open signal file." << endl;
-        return false;
-    }
-    return true;
-}
-
-// void multiply_arrays_elementwise(const cufftComplex* array1,
-//                                  const cufftComplex* array2,
-//                                  cufftComplex* result,
-//                                  int length
-//                                 ) {
-//     for (int i = 0; i < length; ++i) {
-//         result[i] = ComplexMul(array1[i], array2[i]);
-//     }
-// }
-
-// Complex multiplication
-static __device__ __host__ inline Complex ComplexMul(Complex a, Complex b) {
-  Complex c;
-  c.x = a.x * b.x - a.y * b.y;
-  c.y = a.x * b.y + a.y * b.x;
-  return c;
 }

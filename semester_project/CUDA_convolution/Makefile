@@ -34,7 +34,7 @@ build/lib/libTimer.so: Timer/src/Timer.cpp
 	@mkdir -p build/.objects/Timer
 	$(CXX) $(CXXFLAGS) -c -fPIC -ITimer/include \
 		-I$(CUDAPATH)/include -I$(CUDAPATH)$(SAMPLESPATH) \
-		-o build/.objects/Timer/Timer.os Timer/src/Timer.cpp
+		-o build/.objects/Timer/Timer.so Timer/src/Timer.cpp
 	@mkdir -p build/lib
 	$(CXX) -shared -o build/lib/libTimer.so build/.objects/Timer/* \
 		-L$(CUDAPATH)/lib64 -lcudart_static
