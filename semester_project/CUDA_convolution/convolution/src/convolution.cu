@@ -111,6 +111,11 @@ void dataTypeWriter<cufftComplex>(FILE* filePtr){
 }
 
 template<>
+void dataTypeWriter<float>(FILE* filePtr){
+    fprintf(filePtr, "float\n");
+}
+
+template<>
 void typeSpecificfprintf<cufftComplex>(FILE* fptr, cufftComplex const & data){
 
     fprintf(fptr, "%20.16f %20.16f\n", data.x, data.y);
@@ -119,6 +124,13 @@ void typeSpecificfprintf<cufftComplex>(FILE* fptr, cufftComplex const & data){
 
 template<>
 void typeSpecificfprintf<double>(FILE* fptr, double const & data){
+
+    fprintf(fptr, "%20.16f\n", data);
+
+}
+
+template<>
+void typeSpecificfprintf<float>(FILE* fptr, float const & data){
 
     fprintf(fptr, "%20.16f\n", data);
 

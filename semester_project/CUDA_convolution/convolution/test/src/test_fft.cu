@@ -65,8 +65,8 @@ int main() {
         "/home/jeff/code/CPE613/semester_project/test_data_gold/arr1_1024.txt";
     string filter_file_name =
         "/home/jeff/code/CPE613/semester_project/test_data_gold/arr2_1024.txt";
-    // const char *output_file_name =
-    //     "/home/jeff/code/CPE613/semester_project/test_data/cuda_fft_1024.txt";
+    const char *output_file_name =
+        "/home/jeff/code/CPE613/semester_project/test_data/cuda_fft_1024.txt";
 
     bool file_status = false;
     file_status = read_file_into_vector(signal_file_name, h_signal);
@@ -74,23 +74,19 @@ int main() {
     file_status = read_file_into_vector(filter_file_name, h_filter);
     if (file_status == false) return 1;
 
-    printf("Signal array:\n");
-    int x = 0;
-    for (auto &i : h_signal) {
-        printf("%d : %f\n", x, i);
-        x++;
-    }
-    printf("=====\n");
+    // printf("Signal array:\n");
+    // int x = 0;
+    // for (auto &i : h_signal) {
+    //     printf("%d : %f\n", x++, i);
+    // }
+    // printf("=====\n");
 
-    printf("Filter array:\n");
-    int y = 0;
-    for (auto &i : h_filter) {
-        printf("%d : %f\n", y, i);
-        y++;
-    }
-    printf("=====\n");
-
-    return 0;
+    // printf("Filter array:\n");
+    // int y = 0;
+    // for (auto &i : h_filter) {
+    //     printf("%d : %f\n", y++, i);
+    // }
+    // printf("=====\n");
 
     cudaMemcpyAsync(d_signal, h_signal.data(),
                     sizeof(input_type) * h_signal.size(),
@@ -113,6 +109,8 @@ int main() {
     cufftExecR2C(plan1, d_signal, d_signal_fft);
     cufftDestroy(plan1);
 
+    dumpGPUDataToFile(d_signal_fft, {static_cast<int>(N / 2 + 1),1}, "cuda_sig_fft.txt");
+
     cufftCreate(&plan2);
     cufftPlan1d(&plan2, h_filter.size(), CUFFT_R2C, K);
 
@@ -121,6 +119,8 @@ int main() {
 
     cufftExecR2C(plan2, d_filter, d_filter_fft);
     cufftDestroy(plan2);
+
+    dumpGPUDataToFile(d_filter_fft, {static_cast<int>(N / 2 + 1),1}, "cuda_fil_fft.txt");
 
     cudaStreamSynchronize(stream); // force CPU thread to wait
 
@@ -143,8 +143,9 @@ int main() {
                                  cudaMemcpyDeviceToHost, stream);
 
     printf("Real result array:\n");
+    int z = 0;
     for (auto &i : h_result) {
-        printf("%f\n", i);
+        printf("%d : %f\n", z++, i);
     }
     printf("=====\n");
     

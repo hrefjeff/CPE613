@@ -23,6 +23,8 @@ template<>
 void dataTypeWriter<double>(FILE*);
 template<>
 void dataTypeWriter<cufftComplex>(FILE*);
+template<>
+void dataTypeWriter<float>(FILE*);
 
 template<typename T>
 void typeSpecificfprintf(FILE* fptr, T const & data);
@@ -30,6 +32,8 @@ template<>
 void typeSpecificfprintf<cufftComplex>(FILE* fptr, cufftComplex const & data);
 template<>
 void typeSpecificfprintf<double>(FILE* fptr, double const & data);
+template<>
+void typeSpecificfprintf<float>(FILE* fptr, float const & data);
 
 template<typename T>
 void dumpGPUDataToFile(
