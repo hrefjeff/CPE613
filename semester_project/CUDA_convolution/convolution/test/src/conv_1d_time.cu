@@ -19,6 +19,7 @@
 #include <complex>
 
 #include <convolution.h>
+#include <Timer.hpp>
 
 #define N 1024
 #define K 1024
@@ -36,11 +37,11 @@ int main() {
 
     // Prepare to read signal and filter information from files
     string signal_file_name =
-        "/home/jeff/code/CPE613/semester_project/test_data_gold/arr1_1024.txt";
+        "/home/jeff/CPE613/semester_project/test_data_gold/arr1_1024.txt";
     string filter_file_name =
-        "/home/jeff/code/CPE613/semester_project/test_data_gold/arr2_1024.txt";
+        "/home/jeff/CPE613/semester_project/test_data_gold/arr2_1024.txt";
     const char *output_file_name =
-        "/home/jeff/code/CPE613/semester_project/test_data/cuda_time_1024.txt";
+        "/home/jeff/CPE613/semester_project/test_data/cuda_time_1024.txt";
 
     ifstream signal_file(signal_file_name);
     ifstream filter_file(filter_file_name);
@@ -69,13 +70,20 @@ int main() {
         return EXIT_FAILURE;
     }
 
-    int numOfThreads = 32;
-    int numOfBlocks = (N + numOfThreads - 1) / numOfThreads;
-
+    Timer timer;
+    timer.start();
     cudaMemcpy(d_input, h_input, N * sizeof(float), cudaMemcpyHostToDevice);
     cudaMemcpy(d_filter, h_filter, K * sizeof(float), cudaMemcpyHostToDevice);
     convolve_1d(d_input, d_filter, d_output, N, K);
     cudaMemcpy(h_output, d_output, (N + K - 1) * sizeof(float), cudaMemcpyDeviceToHost);
+    timer.stop();
+
+    double elapsedTime_ms = timer.elapsedTime_ms();
+
+    printf (
+    "\n- Avg Elapsed Time:             %20.16e Ms\n\n",
+        elapsedTime_ms / 1.0e3
+    );
 
     FILE* filePtr = fopen(output_file_name, "w");
     for (int i = 0; i < N + K - 1; i++) {
