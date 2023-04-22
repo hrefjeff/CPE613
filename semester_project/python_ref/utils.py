@@ -15,7 +15,8 @@ def read_array_from_text_file(input_file):
 
 def save_array_to_text_file(output_file, arr):
     """Save a numpy array to a text file"""
-    np.savetxt(output_file, arr)
+    #np.savetxt(output_file, arr, fmt='%20.16e') # scientific notation
+    np.savetxt(output_file, arr, fmt='%20.16f')  # decimal notation
 
 def plot_result(result):
     # Plot result

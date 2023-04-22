@@ -28,8 +28,9 @@ int main() {
     using input_type = scalar_type;
     using output_type = complex<scalar_type>;
 
+    // Initial the signal
     vector<input_type> h_signal(N, 0);
-    vector<cufftComplex> h_signal_fft(static_cast<int>((N / 2 + 1)));
+    vector<cufftComplex> h_signal_fft(N);
     input_type *d_signal = nullptr;
     cufftComplex *d_signal_fft = nullptr;
 
@@ -38,8 +39,9 @@ int main() {
     cudaMalloc(reinterpret_cast<void **>(&d_signal_fft),
                 sizeof(output_type) * h_signal_fft.size());
 
+    // Initial the filter
     vector<input_type> h_filter(K, 0);
-    vector<cufftComplex> h_filter_fft(static_cast<int>((K / 2 + 1)));
+    vector<cufftComplex> h_filter_fft(K);
     input_type *d_filter = nullptr;
     cufftComplex *d_filter_fft = nullptr;
 
@@ -48,10 +50,11 @@ int main() {
     cudaMalloc(reinterpret_cast<void **>(&d_filter_fft),
                 sizeof(output_type) * h_filter_fft.size());
 
-    vector<cufftComplex> h_product_fft(static_cast<int>((N / 2 + 1)));
+    // Initial the product
+    vector<cufftComplex> h_product_fft(N);
     cufftComplex *d_product_fft = nullptr;
     cudaMalloc(reinterpret_cast<void **>(&d_product_fft),
-                sizeof(output_type) * static_cast<int>((N / 2 + 1)));
+                sizeof(output_type) * N);
 
     cufftReal* d_result = nullptr;
     cudaMalloc(reinterpret_cast<void **>(&d_result), sizeof(cufftReal) * N);
@@ -62,11 +65,11 @@ int main() {
 
     // Prepare to read signal and filter information from files
     string signal_file_name =
-        "/home/jeff/code/CPE613/semester_project/test_data_gold/arr1_1024.txt";
+        "/home/jeff/CPE613/semester_project/test_data_gold/arr1_1024.txt";
     string filter_file_name =
-        "/home/jeff/code/CPE613/semester_project/test_data_gold/arr2_1024.txt";
+        "/home/jeff/CPE613/semester_project/test_data_gold/arr2_1024.txt";
     const char *output_file_name =
-        "/home/jeff/code/CPE613/semester_project/test_data/cuda_fft_1024.txt";
+        "/home/jeff/CPE613/semester_project/test_data/cuda_fft_1024.txt";
 
     bool file_status = false;
     file_status = read_file_into_vector(signal_file_name, h_signal);
@@ -94,7 +97,7 @@ int main() {
                     stream
                 );
 
-    cudaMemcpyAsync(d_filter, h_signal.data(),
+    cudaMemcpyAsync(d_filter, h_filter.data(),
                     sizeof(input_type) * h_filter.size(),
                     cudaMemcpyHostToDevice,
                     stream
@@ -109,7 +112,7 @@ int main() {
     cufftExecR2C(plan1, d_signal, d_signal_fft);
     cufftDestroy(plan1);
 
-    dumpGPUDataToFile(d_signal_fft, {static_cast<int>(N / 2 + 1),1}, "cuda_sig_fft.txt");
+    dumpGPUDataToFile(d_signal_fft, {K,1}, "cuda_sig_fft.txt");
 
     cufftCreate(&plan2);
     cufftPlan1d(&plan2, h_filter.size(), CUFFT_R2C, K);
@@ -120,9 +123,11 @@ int main() {
     cufftExecR2C(plan2, d_filter, d_filter_fft);
     cufftDestroy(plan2);
 
-    dumpGPUDataToFile(d_filter_fft, {static_cast<int>(N / 2 + 1),1}, "cuda_fil_fft.txt");
-
     cudaStreamSynchronize(stream); // force CPU thread to wait
+
+    dumpGPUDataToFile(d_filter_fft, {N,1}, "cuda_fil_fft.txt");
+
+    return 0;
 
     // Multiplication section
     complexMulGPU(
