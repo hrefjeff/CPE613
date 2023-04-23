@@ -8,6 +8,7 @@
 #include <vector>
 #include <fstream>
 
+typedef float2 Complex;
 typedef float2 cufftComplex;
 
 void convolve_1d(float*, float*, float*, int, int);
@@ -15,7 +16,8 @@ void complexMulGPU(cufftComplex*, cufftComplex*, cufftComplex* , int);
 
 // Utility functions
 
-bool read_file_into_vector(std::string fname, std::vector<float> & arr);
+bool read_file_into_array(std::string fname, Complex arr[]);
+bool read_file_into_vector(std::string fname, std::vector<cufftComplex> & arr);
 
 template <typename T>
 void dataTypeWriter(FILE*);
@@ -42,7 +44,7 @@ void dumpGPUDataToFile(
                 std::string filename
             ){
 
-    checkCudaErrors(cudaDeviceSynchronize()); // force GPU thread to wait
+    //checkCudaErrors(cudaDeviceSynchronize()); // force GPU thread to wait
 
     int totalNumElements = 1;
     for(auto elts : dimensionsOfData) {

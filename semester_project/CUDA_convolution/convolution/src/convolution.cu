@@ -57,7 +57,6 @@ __global__ void complexMulGPUKernel(
                     cufftComplex* output,
                     int size
                 ){
-                            
     for (int idx = threadIdx.x + blockDim.x * blockIdx.x;
         idx < size;
         idx += blockDim.x * gridDim.x
@@ -75,19 +74,42 @@ void complexMulGPU(
     int blockSize = 32;
     int gridSize = (size + blockSize - 1) / blockSize;
 
-    complexMulGPUKernel<<<gridSize, blockSize>>>(output, input1, input2, size);
+    complexMulGPUKernel<<<gridSize, blockSize>>>(input1, input2, output, size);
 
     checkCudaErrors(cudaGetLastError());
 }
 
-bool read_file_into_vector(std::string filename, std::vector<float>& arr) {
+bool read_file_into_array(std::string filename, Complex arr[]) {
     std::ifstream the_file(filename);
 
     if (the_file.is_open()) {
         int index = 0;
+        Complex c;
         float value;
         while (the_file >> value) {
-            arr[index++] = (float)(value);
+            c.x = value;
+            c.y = 0.0f;
+            arr[index++] = c;
+        }
+        the_file.close();
+    } else {
+        std::cout << "Unable to open signal file." << std::endl;
+        return false;
+    }
+    return true;
+}
+
+bool read_file_into_vector(std::string filename, std::vector<Complex> & arr) {
+    std::ifstream the_file(filename);
+
+    if (the_file.is_open()) {
+        int index = 0;
+        Complex c;
+        float value;
+        while (the_file >> value) {
+            c.x = value;
+            c.y = 0.0f;
+            arr[index++] = c;
         }
         the_file.close();
     } else {
