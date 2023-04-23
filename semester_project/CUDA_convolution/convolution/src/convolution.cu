@@ -79,17 +79,27 @@ void complexMulGPU(
     checkCudaErrors(cudaGetLastError());
 }
 
+float complex_to_float(cufftComplex value) {
+    float float_value;
+    float_value = value.x; // Remove imaginary part of number
+    return float_value;
+}
+
+cufftComplex float_to_complex(float value) {
+    cufftComplex complex_value;
+    complex_value.x = value;   // Assign the float value to the real part
+    complex_value.y = 0.0f;    // Set the imaginary part to zero
+    return complex_value;
+}
+
 bool read_file_into_array(std::string filename, Complex arr[]) {
     std::ifstream the_file(filename);
 
     if (the_file.is_open()) {
         int index = 0;
-        Complex c;
         float value;
         while (the_file >> value) {
-            c.x = value;
-            c.y = 0.0f;
-            arr[index++] = c;
+            arr[index++] = float_to_complex(value);
         }
         the_file.close();
     } else {
@@ -104,12 +114,9 @@ bool read_file_into_vector(std::string filename, std::vector<Complex> & arr) {
 
     if (the_file.is_open()) {
         int index = 0;
-        Complex c;
         float value;
         while (the_file >> value) {
-            c.x = value;
-            c.y = 0.0f;
-            arr[index++] = c;
+            arr[index++] = float_to_complex(value);
         }
         the_file.close();
     } else {
@@ -154,6 +161,6 @@ void typeSpecificfprintf<double>(FILE* fptr, double const & data){
 template<>
 void typeSpecificfprintf<float>(FILE* fptr, float const & data){
 
-    fprintf(fptr, "%20.16f\n", data);
+    fprintf(fptr, "%20.16e\n", data);
 
 }
