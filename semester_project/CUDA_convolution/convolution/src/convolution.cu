@@ -147,7 +147,7 @@ void dataTypeWriter<float>(FILE* filePtr){
 template<>
 void typeSpecificfprintf<cufftComplex>(FILE* fptr, cufftComplex const & data){
 
-    fprintf(fptr, "%20.16f %20.16f\n", data.x, data.y);
+    fprintf(fptr, "%20.16e %20.16e\n", data.x, data.y);
 
 }
 
