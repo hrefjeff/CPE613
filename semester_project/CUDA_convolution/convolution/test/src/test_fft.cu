@@ -26,9 +26,8 @@ https://developer.nvidia.com/blog/cuda-pro-tip-use-cufft-callbacks-custom-data-p
 using namespace std;
 
 int main() {
-    cufftHandle plan1;
-    cufftHandle plan2;
-    cufftHandle plan3;
+    cufftHandle plan1; // Forward FFT Plan
+    cufftHandle plan2; // Inverse FFT Plan
     cudaStream_t stream = NULL;
     
     bool file_status = false;
@@ -93,25 +92,16 @@ int main() {
         )
     );
 
-    // Process signal
     cufftCreate(&plan1);
     cufftPlan1d(&plan1, N + K - 1, CUFFT_C2C, BATCH_SIZE);
-
     cudaStreamCreateWithFlags(&stream, cudaStreamNonBlocking);
     cufftSetStream(plan1, stream);
-    
+
+    // Process signal    
     cufftExecC2C(plan1, d_signal, d_signal_fft, CUFFT_FORWARD);
-    cufftDestroy(plan1);
 
     // Process filter
-    cufftCreate(&plan2);
-    cufftPlan1d(&plan2, N + K - 1, CUFFT_C2C, BATCH_SIZE);
-
-    cudaStreamCreateWithFlags(&stream, cudaStreamNonBlocking);
-    cufftSetStream(plan2, stream);
-
-    cufftExecC2C(plan2, d_filter, d_filter_fft, CUFFT_FORWARD);
-    cufftDestroy(plan2);
+    cufftExecC2C(plan1, d_filter, d_filter_fft, CUFFT_FORWARD);
 
     cudaStreamSynchronize(stream); // force CPU thread to wait
 
@@ -152,11 +142,11 @@ int main() {
     // dumpGPUDataToFile(d_product_fft, {N,1}, "test3.txt");
 
     // Perform inverse
-    cufftCreate(&plan3);
-    cufftPlan1d(&plan3, h_product_fft.size(), CUFFT_C2C, BATCH_SIZE);
+    cufftCreate(&plan2);
+    cufftPlan1d(&plan2, h_product_fft.size(), CUFFT_C2C, BATCH_SIZE);
 
     // Execute the inverse FFT on the result
-    cufftExecC2C(plan3, d_product_fft, d_product_fft, CUFFT_INVERSE);
+    cufftExecC2C(plan2, d_product_fft, d_product_fft, CUFFT_INVERSE);
 
     cudaStreamSynchronize(stream); // force CPU thread to wait
     
@@ -187,7 +177,11 @@ int main() {
     cudaFree(d_filter_fft);
     cudaFree(d_product_fft);
 
+    cufftDestroy(plan1);
+    cufftDestroy(plan2);
     cudaStreamDestroy(stream);
+    
+    
 
     cudaDeviceReset();
 
