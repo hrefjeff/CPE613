@@ -29,7 +29,8 @@ LIBS=-lcudart
 .PHONY: clean
 
 all: build/lib/libTimer.so build/lib/libconvolution.so \
-	build/bin/convolution_test build/bin/nvidia_example_test
+	build/bin/convolution_time_test build/bin/convolution_fft_test \
+	build/bin/nvidia_example_test
 
 build/lib/libTimer.so: Timer/src/Timer.cpp
 	@mkdir -p build/.objects/Timer
@@ -57,12 +58,22 @@ build/lib/libconvolution.so: convolution/src/convolution.cu
 	@mkdir -p build/include
 	@ln -sf ../../convolution/include/convolution.h build/include/convolution.h
 
-build/bin/convolution_test: build/lib/libTimer.so build/lib/libconvolution.so \
+build/bin/convolution_time_test: build/lib/libTimer.so build/lib/libconvolution.so \
+	convolution/test/src/conv_1d_time.cu
+	@mkdir -p build/bin
+	$(NVCC) -Ibuild/include -I$(CUDAPATH)$(SAMPLESPATH) \
+		-I$(CUDAPATH)/include -ITimer/include \
+		-o build/bin/convolution_time_test convolution/test/src/conv_1d_time.cu \
+		-Xlinker=-rpath=$(PWD)/build/lib \
+		-Lbuild/lib -L$(CUDAPATH)/lib64 \
+		-lTimer -lconvolution -lcudart -lcufft
+
+build/bin/convolution_fft_test: build/lib/libTimer.so build/lib/libconvolution.so \
 	convolution/test/src/test_fft.cu
 	@mkdir -p build/bin
 	$(NVCC) -Ibuild/include -I$(CUDAPATH)$(SAMPLESPATH) \
 		-I$(CUDAPATH)/include -ITimer/include \
-		-o build/bin/convolution_test convolution/test/src/test_fft.cu \
+		-o build/bin/convolution_fft_test convolution/test/src/test_fft.cu \
 		-Xlinker=-rpath=$(PWD)/build/lib \
 		-Lbuild/lib -L$(CUDAPATH)/lib64 \
 		-lTimer -lconvolution -lcudart -lcufft

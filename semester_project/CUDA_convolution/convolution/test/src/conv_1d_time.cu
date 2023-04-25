@@ -31,17 +31,17 @@ int main() {
     float *h_filter = new float[K];
     float *h_output = new float[N + K - 1];
     float *d_input, *d_filter, *d_output;
-    cudaMalloc((void **)&d_input, N * sizeof(float));
-    cudaMalloc((void **)&d_filter, K * sizeof(float));
-    cudaMalloc((void **)&d_output, (N + K - 1) * sizeof(float));
+    checkCudaErrors(cudaMalloc((void **)&d_input, N * sizeof(float)));
+    checkCudaErrors(cudaMalloc((void **)&d_filter, K * sizeof(float)));
+    checkCudaErrors(cudaMalloc((void **)&d_output, (N+K-1) * sizeof(float)));
 
     // Prepare to read signal and filter information from files
     string signal_file_name =
-        "/home/jeff/CPE613/semester_project/test_data_gold/arr1_1024.txt";
+        "/home/jeff/code/CPE613/semester_project/test_data_gold/arr1_1024.txt";
     string filter_file_name =
-        "/home/jeff/CPE613/semester_project/test_data_gold/arr2_1024.txt";
+        "/home/jeff/code/CPE613/semester_project/test_data_gold/arr2_1024.txt";
     const char *output_file_name =
-        "/home/jeff/CPE613/semester_project/test_data/cuda_time_1024.txt";
+        "/home/jeff/code/CPE613/semester_project/test_data/cuda_time_1024.txt";
 
     ifstream signal_file(signal_file_name);
     ifstream filter_file(filter_file_name);
@@ -72,10 +72,30 @@ int main() {
 
     Timer timer;
     timer.start();
-    cudaMemcpy(d_input, h_input, N * sizeof(float), cudaMemcpyHostToDevice);
-    cudaMemcpy(d_filter, h_filter, K * sizeof(float), cudaMemcpyHostToDevice);
+    checkCudaErrors(
+        cudaMemcpy(
+            d_input, h_input,
+            N * sizeof(float),
+            cudaMemcpyHostToDevice
+        )
+    );
+    checkCudaErrors(
+        cudaMemcpy(
+            d_filter, h_filter,
+            K * sizeof(float),
+            cudaMemcpyHostToDevice
+        )
+    );
+
     convolve_1d(d_input, d_filter, d_output, N, K);
-    cudaMemcpy(h_output, d_output, (N + K - 1) * sizeof(float), cudaMemcpyDeviceToHost);
+    
+    checkCudaErrors(
+        cudaMemcpy(
+            h_output, d_output,
+            (N + K - 1) * sizeof(float),
+            cudaMemcpyDeviceToHost
+        )
+    );
     timer.stop();
 
     double elapsedTime_ms = timer.elapsedTime_ms();
