@@ -26,8 +26,8 @@ https://developer.nvidia.com/blog/cuda-pro-tip-use-cufft-callbacks-custom-data-p
 using namespace std;
 
 int main() {
-    cufftHandle plan1; // Forward FFT Plan
-    cufftHandle plan2; // Inverse FFT Plan
+    cufftHandle plan1;
+    cufftHandle plan2;
     cudaStream_t stream = NULL;
 
     int FFT_SIZE = next_power_of_2(N + K - 1);
@@ -70,14 +70,14 @@ int main() {
 
     // Initialize the product
     vector<cufftComplex> h_convolved_result(FFT_SIZE, cufftComplex{0});
-    vector<cufftComplex> h_product_fft(FFT_SIZE, cufftComplex{0});
     
-    cufftComplex *d_product_fft = nullptr;
     cufftComplex *d_convolved_fft = nullptr;
-    cudaMalloc(reinterpret_cast<void **>(&d_product_fft),
-                sizeof(cufftComplex) * h_product_fft.size());
+    cufftComplex *d_product_fft = nullptr;
+
     cudaMalloc(reinterpret_cast<void **>(&d_convolved_fft),
-                sizeof(cufftComplex) * h_convolved_result.size());
+                sizeof(cufftComplex) * FFT_SIZE);
+    cudaMalloc(reinterpret_cast<void **>(&d_product_fft),
+                sizeof(cufftComplex) * FFT_SIZE);
 
     checkCudaErrors(
         cudaMemcpyAsync(
@@ -116,7 +116,7 @@ int main() {
     // dumpGPUDataToFile(d_filter_fft, {FFT_SIZE,1}, "cuda-fft-filter.txt");
 
     // Multiplication section
-    complexMulGPU(
+    complexMulAndScaleGPU(
         d_signal_fft,
         d_filter_fft,
         d_product_fft,
@@ -127,12 +127,10 @@ int main() {
 
     // Perform inverse
     cufftCreate(&plan2);
-    cufftPlan1d(&plan2, h_product_fft.size(), CUFFT_C2C, BATCH_SIZE);
+    cufftPlan1d(&plan2, FFT_SIZE, CUFFT_C2C, BATCH_SIZE);
 
     // Execute the inverse FFT on the result
     cufftExecC2C(plan2, d_product_fft, d_convolved_fft, CUFFT_INVERSE);
-
-    cudaStreamSynchronize(stream); // force CPU thread to wait
     
     cudaMemcpyAsync(
         h_convolved_result.data(), d_convolved_fft,
@@ -141,15 +139,12 @@ int main() {
         stream
     );
 
-    //dumpGPUDataToFile(d_product_fft, {FFT_SIZE,1}, output_file_name);
-
     cudaStreamSynchronize(stream); // force CPU thread to wait
 
     FILE* filePtr = fopen(output_file_name, "w");
     float tmp;
-    for(auto elt : h_convolved_result) {
-        tmp = complex_to_float(elt);
-        // support multiple types or use C++
+    for (int i = 0; i < FFT_SIZE - 1; i++) {
+        tmp = complex_to_float(h_convolved_result[i]);
         typeSpecificfprintf(filePtr, tmp);
     }
     fclose(filePtr);

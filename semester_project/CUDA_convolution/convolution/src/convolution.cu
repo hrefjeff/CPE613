@@ -1,5 +1,12 @@
 #include <convolution.h>
 
+static __device__ __host__ inline Complex ComplexScale(Complex a, float s) {
+    Complex c;
+    c.x = s * a.x;
+    c.y = s * a.y;
+    return c;
+}
+
 static __device__ __host__ inline
 cufftComplex ComplexMul(cufftComplex a, cufftComplex b) {
     cufftComplex c;
@@ -61,11 +68,14 @@ __global__ void complexMulGPUKernel(
         idx < size;
         idx += blockDim.x * gridDim.x
     ){
-        output[idx] = ComplexMul(input1[idx], input2[idx]);
+        output[idx] = ComplexScale(
+                            ComplexMul(input1[idx], input2[idx]),
+                            1.0 / size
+                        );
     }
 }
 
-void complexMulGPU(
+void complexMulAndScaleGPU(
         cufftComplex* input1,
         cufftComplex* input2,
         cufftComplex* output,

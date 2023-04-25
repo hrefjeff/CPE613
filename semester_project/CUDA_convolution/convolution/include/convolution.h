@@ -13,7 +13,7 @@ typedef float2 cufftComplex;
 
 // Convolution functions
 void convolve_1d(float*, float*, float*, int, int);
-void complexMulGPU(cufftComplex*, cufftComplex*, cufftComplex* , int);
+void complexMulAndScaleGPU(cufftComplex*, cufftComplex*, cufftComplex* , int);
 
 // Utility functions
 int next_power_of_2(int num);
