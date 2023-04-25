@@ -79,6 +79,10 @@ void complexMulGPU(
     checkCudaErrors(cudaGetLastError());
 }
 
+int next_power_of_2(int num) {
+    return 1 << (int(log2(num - 1)) + 1);
+}
+
 float complex_to_float(cufftComplex value) {
     float float_value;
     float_value = value.x; // Remove imaginary part of number
@@ -92,7 +96,7 @@ cufftComplex float_to_complex(float value) {
     return complex_value;
 }
 
-bool read_file_into_array(std::string filename, Complex arr[]) {
+bool read_file_into_array(std::string filename, cufftComplex arr[]) {
     std::ifstream the_file(filename);
 
     if (the_file.is_open()) {

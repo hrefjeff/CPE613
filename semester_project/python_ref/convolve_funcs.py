@@ -133,6 +133,12 @@ def convolve_fft(x_list, h_list, K=None):
     # Perform circular convolution in the frequency domain
     Y = np.multiply(X, H)
 
+    # ======= Debugging ============
+    debug = False
+    if (debug):
+        save_array_to_text_file("py_fft_product.txt",Y)
+    # ==============================
+
     # Go back to time domain
     y = np.real(np.fft.ifft(Y))
 

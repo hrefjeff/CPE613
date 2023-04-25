@@ -16,6 +16,7 @@ void convolve_1d(float*, float*, float*, int, int);
 void complexMulGPU(cufftComplex*, cufftComplex*, cufftComplex* , int);
 
 // Utility functions
+int next_power_of_2(int num);
 float complex_to_float(cufftComplex value);
 cufftComplex float_to_complex(float value);
 bool read_file_into_array(std::string fname, Complex arr[]);

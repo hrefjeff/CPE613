@@ -47,7 +47,8 @@ def main():
         chdir(gold_test_dir)
         filename_1 = "arr1_" + str(NUM_ELEMENTS) + ".txt"
         filename_2 = "arr2_" + str(NUM_ELEMENTS) + ".txt"
-        filename_result = CONV_METHOD + "_result_" + str(NUM_ELEMENTS) + ".txt"
+        filename_result = "py_" + CONV_METHOD + "_result_" + \
+            str(NUM_ELEMENTS) + ".txt"
 
         # Create data set if it doesn't exist
         if not path.exists(filename_1) or not path.exists(filename_2):

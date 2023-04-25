@@ -29,6 +29,8 @@ int main() {
     cufftHandle plan1; // Forward FFT Plan
     cufftHandle plan2; // Inverse FFT Plan
     cudaStream_t stream = NULL;
+
+    int FFT_SIZE = next_power_of_2(N + K - 1);
     
     bool file_status = false;
     string signal_file_name =
@@ -39,8 +41,8 @@ int main() {
         "/home/jeff/code/CPE613/semester_project/test_data/cuda_fft_1024.txt";
 
     // Initialize the signal
-    vector<cufftComplex> h_signal(N);
-    vector<cufftComplex> h_signal_fft(N + K - 1);
+    vector<cufftComplex> h_signal(FFT_SIZE, cufftComplex{0});
+    vector<cufftComplex> h_signal_fft(FFT_SIZE, cufftComplex{0});
     
     file_status = read_file_into_vector(signal_file_name, h_signal);
     if (file_status == false) return EXIT_FAILURE;
@@ -53,8 +55,8 @@ int main() {
                 sizeof(cufftComplex) * h_signal_fft.size());
 
     // Initialize the filter
-    vector<cufftComplex> h_filter(K);
-    vector<cufftComplex> h_filter_fft(N + K - 1);
+    vector<cufftComplex> h_filter(FFT_SIZE, cufftComplex{0});
+    vector<cufftComplex> h_filter_fft(FFT_SIZE, cufftComplex{0});
 
     file_status = read_file_into_vector(filter_file_name, h_filter);
     if (file_status == false) return EXIT_FAILURE;
@@ -67,12 +69,15 @@ int main() {
                 sizeof(cufftComplex) * h_filter_fft.size());
 
     // Initialize the product
-    vector<cufftComplex> h_product_fft(N + K - 1);
+    vector<cufftComplex> h_convolved_result(FFT_SIZE, cufftComplex{0});
+    vector<cufftComplex> h_product_fft(FFT_SIZE, cufftComplex{0});
+    
     cufftComplex *d_product_fft = nullptr;
+    cufftComplex *d_convolved_fft = nullptr;
     cudaMalloc(reinterpret_cast<void **>(&d_product_fft),
-                sizeof(cufftComplex) * N + K - 1);
-
-    vector<cufftComplex> h_result(N + K - 1);
+                sizeof(cufftComplex) * h_product_fft.size());
+    cudaMalloc(reinterpret_cast<void **>(&d_convolved_fft),
+                sizeof(cufftComplex) * h_convolved_result.size());
 
     checkCudaErrors(
         cudaMemcpyAsync(
@@ -93,9 +98,9 @@ int main() {
     );
 
     cufftCreate(&plan1);
-    cufftPlan1d(&plan1, N + K - 1, CUFFT_C2C, BATCH_SIZE);
-    cudaStreamCreateWithFlags(&stream, cudaStreamNonBlocking);
-    cufftSetStream(plan1, stream);
+    cufftPlan1d(&plan1, FFT_SIZE, CUFFT_C2C, BATCH_SIZE);
+    //cudaStreamCreateWithFlags(&stream, cudaStreamNonBlocking);
+    //cufftSetStream(plan1, stream);
 
     // Process signal    
     cufftExecC2C(plan1, d_signal, d_signal_fft, CUFFT_FORWARD);
@@ -103,67 +108,46 @@ int main() {
     // Process filter
     cufftExecC2C(plan1, d_filter, d_filter_fft, CUFFT_FORWARD);
 
-    cudaStreamSynchronize(stream); // force CPU thread to wait
+    //cudaStreamSynchronize(stream); // force CPU thread to wait
 
     checkCudaErrors(cudaGetLastError());
 
-    dumpGPUDataToFile(d_signal_fft, {N + K - 1,1}, "cuda-fft-signal.txt");
-    dumpGPUDataToFile(d_filter_fft, {N + K - 1,1}, "cuda-fft-filter.txt");
-
-    // cudaMemcpyAsync(h_signal_fft.data(), d_signal, sizeof(cufftComplex) * N,
-    //                              cudaMemcpyDeviceToHost, stream);
-    // cudaMemcpyAsync(h_filter_fft.data(), d_filter, sizeof(cufftComplex) * K,
-    //                              cudaMemcpyDeviceToHost, stream);
-
-    // std::printf("Host signal fft array:\n");
-    // for (int i = 0; i < 20; i++) {
-    //     std::printf("%f + %fj\n", h_signal_fft[i].x, h_signal_fft[i].y);
-    // }
-    // std::printf("=====\n");
+    // dumpGPUDataToFile(d_signal_fft, {FFT_SIZE,1}, "cuda-fft-signal.txt");
+    // dumpGPUDataToFile(d_filter_fft, {FFT_SIZE,1}, "cuda-fft-filter.txt");
 
     // Multiplication section
     complexMulGPU(
-        d_signal,
-        d_filter,
+        d_signal_fft,
+        d_filter_fft,
         d_product_fft,
-        N + K - 1
+        FFT_SIZE
     );
 
-    // printf("Host product fft:\n");
-    // int z = 0;
-    // for (auto &i : h_product_fft) {
-    //     printf("%d : %f\n", z++, i.x);
-    // }
-    // printf("=====\n");
-
-    // cudaMemcpyAsync(d_product_fft, h_product_fft.data(), sizeof(cufftComplex) * N,
-    //                              cudaMemcpyHostToDevice, stream);
-
-    // dumpGPUDataToFile(d_product_fft, {N,1}, "test3.txt");
+    // dumpGPUDataToFile(d_product_fft, {FFT_SIZE,1}, "test.txt");
 
     // Perform inverse
     cufftCreate(&plan2);
     cufftPlan1d(&plan2, h_product_fft.size(), CUFFT_C2C, BATCH_SIZE);
 
     // Execute the inverse FFT on the result
-    cufftExecC2C(plan2, d_product_fft, d_product_fft, CUFFT_INVERSE);
+    cufftExecC2C(plan2, d_product_fft, d_convolved_fft, CUFFT_INVERSE);
 
     cudaStreamSynchronize(stream); // force CPU thread to wait
     
     cudaMemcpyAsync(
-        h_result.data(), d_product_fft,
-        sizeof(cufftComplex) * N + K - 1,
+        h_convolved_result.data(), d_convolved_fft,
+        sizeof(cufftComplex) * FFT_SIZE,
         cudaMemcpyDeviceToHost,
         stream
     );
 
-    //dumpGPUDataToFile(d_product_fft, {N,1}, output_file_name);
+    //dumpGPUDataToFile(d_product_fft, {FFT_SIZE,1}, output_file_name);
 
     cudaStreamSynchronize(stream); // force CPU thread to wait
 
     FILE* filePtr = fopen(output_file_name, "w");
     float tmp;
-    for(auto elt : h_result) {
+    for(auto elt : h_convolved_result) {
         tmp = complex_to_float(elt);
         // support multiple types or use C++
         typeSpecificfprintf(filePtr, tmp);
@@ -176,12 +160,11 @@ int main() {
     cudaFree(d_filter);
     cudaFree(d_filter_fft);
     cudaFree(d_product_fft);
+    cudaFree(d_convolved_fft);
 
     cufftDestroy(plan1);
     cufftDestroy(plan2);
     cudaStreamDestroy(stream);
-    
-    
 
     cudaDeviceReset();
 
