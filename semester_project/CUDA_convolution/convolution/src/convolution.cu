@@ -61,7 +61,7 @@ void convolve_1d_time (
     int K
 ) {
 
-    int numOfThreads = 32;
+    int numOfThreads = 1024;
     int numOfBlocks = ((N + K - 1) + numOfThreads - 1) / numOfThreads;
 
     convolve_1d_time_kernel<<<numOfBlocks, numOfThreads>>> 
@@ -114,7 +114,7 @@ void convolve_1d_fft(
         cufftComplex* output,
         int size 
 ) {
-    int blockSize = 32;
+    int blockSize = 1024;
     int gridSize = (size + blockSize - 1) / blockSize;
 
     complexMulGPUKernel<<<gridSize, blockSize>>>(input1, input2, output, size);
