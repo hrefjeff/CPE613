@@ -8,6 +8,8 @@
 #include <vector>
 #include <fstream>
 
+#include <Convolution.hpp>
+
 typedef float2 Complex;
 typedef float2 cufftComplex;
 
@@ -16,7 +18,6 @@ void convolve_1d_time(float*, float*, float*, int, int);
 void convolve_1d_fft(cufftComplex*, cufftComplex*, cufftComplex* , int);
 
 // Utility functions
-int next_power_of_2(int num);
 float complex_to_float(cufftComplex value);
 cufftComplex float_to_complex(float value);
 bool read_file_into_array(std::string fname, Complex arr[]);
