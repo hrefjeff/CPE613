@@ -1,6 +1,7 @@
 #include <convolution.h>
 
-static __device__ __host__ inline Complex ComplexScale(Complex a, float s) {
+static __device__ __host__ inline
+Complex ComplexScale(Complex a, float s) {
     Complex c;
     c.x = s * a.x;
     c.y = s * a.y;
@@ -15,6 +16,14 @@ cufftComplex ComplexMul(cufftComplex a, cufftComplex b) {
     return c;
 }
 
+/***
+ * @brief: 1D convolution in time domain
+ * @param input: input signal
+ * @param kernel: filter
+ * @param output: output signal
+ * @param N: length of input signal
+ * @param K: length of filter
+*/
 __global__ void convolve_1d_time_kernel (
     float *input, 
     float *kernel,
@@ -35,6 +44,14 @@ __global__ void convolve_1d_time_kernel (
     output[idxInput] = result;
 }
 
+/***
+ * @brief: 1D convolution in frequency domain
+ * @param input: input signal
+ * @param kernel: filter
+ * @param output: output signal
+ * @param N: length of input signal
+ * @param K: length of filter
+*/
 void convolve_1d (
     float* input,
     float* filter,
@@ -58,6 +75,13 @@ void convolve_1d (
     checkCudaErrors(cudaGetLastError());
 }
 
+/***
+ * @brief: 1D convolution in frequency domain
+ * @param input: input signal
+ * @param kernel: filter
+ * @param output: output signal
+ * @param size: size of FFT
+*/
 __global__ void complexMulGPUKernel(
                     cufftComplex* input1,
                     cufftComplex* input2,
@@ -75,6 +99,13 @@ __global__ void complexMulGPUKernel(
     }
 }
 
+/***
+ * Perform DFT on input signal
+ * @param input: input signal
+ * @param input2: filter kernel
+ * @param output: output signal
+ * @param size: size of FFT
+*/
 void complexMulAndScaleGPU(
         cufftComplex* input1,
         cufftComplex* input2,
@@ -89,16 +120,28 @@ void complexMulAndScaleGPU(
     checkCudaErrors(cudaGetLastError());
 }
 
+/***
+ * Calculate the next closest power of 2
+ * @param num: number to calculate the next power of 2
+*/
 int next_power_of_2(int num) {
     return 1 << (int(log2(num - 1)) + 1);
 }
 
+/***
+ * Convert a complex number to a float
+ * @param value: complex number to convert
+*/
 float complex_to_float(cufftComplex value) {
     float float_value;
     float_value = value.x; // Remove imaginary part of number
     return float_value;
 }
 
+/***
+ * Convert a float to a complex number
+ * @param value: float to convert
+*/
 cufftComplex float_to_complex(float value) {
     cufftComplex complex_value;
     complex_value.x = value;   // Assign the float value to the real part
@@ -106,6 +149,11 @@ cufftComplex float_to_complex(float value) {
     return complex_value;
 }
 
+/***
+ * Read a list of floating point numbers from a file into an array
+ * @param filename - the name of the file to read
+ * @param arr - the array to read the file into
+*/
 bool read_file_into_array(std::string filename, cufftComplex arr[]) {
     std::ifstream the_file(filename);
 
@@ -123,6 +171,11 @@ bool read_file_into_array(std::string filename, cufftComplex arr[]) {
     return true;
 }
 
+/***
+* Reads a file into a vector of Complex numbers
+* @param filename - the name of the file to read
+* @param arr - the vector to read the file into
+***/
 bool read_file_into_vector(std::string filename, std::vector<Complex> & arr) {
     std::ifstream the_file(filename);
 
@@ -139,6 +192,71 @@ bool read_file_into_vector(std::string filename, std::vector<Complex> & arr) {
     }
     return true;
 }
+
+/***
+ * Write a file into a vector of Complex numbers
+ * @param filename - the name of the file to write to
+ * @param arr - the vector to get the data from
+*/
+bool write_results_to_file(const char* fname, std::vector<cufftComplex> arr) {
+
+    FILE* filePtr = fopen(fname, "w");
+    float tmp;
+    for (int i = 0; i < arr.size() - 1; i++) {
+        tmp = complex_to_float(arr[i]);
+        typeSpecificfprintf(filePtr, tmp);
+    }
+    fclose(filePtr);
+}
+
+/***
+ * Dump GPU data to a file
+ * @param devicePtrToData: pointer to data on GPU
+ * @param dimensionsOfData: dimensions of data
+ * @param filename: name of file to dump data to
+*/
+template<typename T>
+void dumpGPUDataToFile(
+                T* devicePtrToData,
+                std::vector<int> dimensionsOfData,
+                std::string filename
+            )
+{
+
+    //checkCudaErrors(cudaDeviceSynchronize()); // force GPU thread to wait
+
+    int totalNumElements = 1;
+    for(auto elts : dimensionsOfData) {
+        totalNumElements *= elts;
+    }
+
+    std::vector<T> hostData(totalNumElements, T{0});
+
+    checkCudaErrors(cudaMemcpy(
+        hostData.data(),
+        devicePtrToData,
+        totalNumElements * sizeof(T),
+        cudaMemcpyDeviceToHost
+    ));
+
+
+    // size of vector of dims
+    FILE* filePtr = fopen(filename.c_str(), "w");
+    // write how many dims we have
+    fprintf(filePtr, "%zu\n", dimensionsOfData.size());
+    for(auto elts : dimensionsOfData) {
+        fprintf(filePtr,"%d\n", elts);
+    }
+
+    dataTypeWriter<T>(filePtr);
+
+    for(auto elt : hostData) {
+        // support multiple types or use C++
+        typeSpecificfprintf(filePtr, elt);
+    }
+    fclose(filePtr);
+}
+
 
 template <typename T>
 void dataTypeWriter(FILE* filePtr);

@@ -18,8 +18,8 @@ https://developer.nvidia.com/blog/cuda-pro-tip-use-cufft-callbacks-custom-data-p
 #include <convolution.h>
 #include <Timer.hpp>
 
-#define N 8192
-#define K 8192
+#define N 4096
+#define K 4096
 #define BATCH_SIZE 1
 
 using namespace std;
@@ -32,11 +32,11 @@ int main() {
     
     bool file_status = false;
     string signal_file_name =
-        "/home/jeff/code/CPE613/semester_project/test_data_gold/arr1_8192.txt";
+        "/home/jeff/code/CPE613/semester_project/test_data_gold/arr1_4096.txt";
     string filter_file_name =
-        "/home/jeff/code/CPE613/semester_project/test_data_gold/arr2_8192.txt";
+        "/home/jeff/code/CPE613/semester_project/test_data_gold/arr2_4096.txt";
     const char *output_file_name =
-        "/home/jeff/code/CPE613/semester_project/test_data/cuda_fft_8192.txt";
+        "/home/jeff/code/CPE613/semester_project/test_data/cuda_fft_4096.txt";
 
     // Initialize the signal
 
@@ -95,8 +95,6 @@ int main() {
     );
 
     // Copy host data to device
-    Timer timer;
-    timer.start();
     checkCudaErrors(
         cudaMemcpyAsync(
             d_signal, h_signal.data(),
@@ -115,6 +113,8 @@ int main() {
         )
     );
 
+    Timer timer;
+    timer.start();
     cufftCreate(&plan);
     cufftPlan1d(&plan, FFT_SIZE, CUFFT_C2C, BATCH_SIZE);
 
@@ -124,7 +124,7 @@ int main() {
     // Process filter
     cufftExecC2C(plan, d_filter, d_filter, CUFFT_FORWARD);
 
-    // Multiply the signals in their frequency form
+    // Perform Discrete Fourier Transform by multiplying the signals in frequency form
     complexMulAndScaleGPU(
         d_signal,
         d_filter,
@@ -134,6 +134,8 @@ int main() {
 
     // Execute the inverse FFT on the result
     cufftExecC2C(plan, d_product_fft, d_product_fft, CUFFT_INVERSE);
+    timer.stop();
+
     
     checkCudaErrors(
         cudaMemcpyAsync(
@@ -143,22 +145,15 @@ int main() {
             stream
         )
     );
-    timer.stop();
-
     double elapsedTime_ms = timer.elapsedTime_ms();
 
     printf (
-    "\n- Avg Elapsed Time:             %20.16e Ms\n\n",
+    "\n- Elapsed Time:             %20.16e Ms\n\n",
         elapsedTime_ms / 1.0e3
     );
 
-    FILE* filePtr = fopen(output_file_name, "w");
-    float tmp;
-    for (int i = 0; i < FFT_SIZE - 1; i++) {
-        tmp = complex_to_float(h_convolved_result[i]);
-        typeSpecificfprintf(filePtr, tmp);
-    }
-    fclose(filePtr);
+    file_status = write_results_to_file(output_file_name, h_convolved_result);
+    if (file_status == false) return EXIT_FAILURE;
     
     /* free resources */
     cudaFree(d_signal);
