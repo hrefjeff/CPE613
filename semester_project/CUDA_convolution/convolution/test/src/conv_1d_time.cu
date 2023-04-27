@@ -88,7 +88,7 @@ int main() {
 
     Timer timer;
     timer.start();
-    convolve_1d(d_input, d_filter, d_output, N, K);
+    convolve_1d_time(d_input, d_filter, d_output, N, K);
     timer.stop();
     
     checkCudaErrors(

@@ -70,7 +70,7 @@ int main() {
     cudaMemcpy(d_filter, h_filter, K * sizeof(float), cudaMemcpyHostToDevice);
 
     // Perform convolution
-    convolve_1d(d_input, d_filter, d_output, N, K);
+    convolve_1d_time(d_input, d_filter, d_output, N, K);
 
     // Copy data from device to host
     cudaMemcpy(

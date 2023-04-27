@@ -125,7 +125,7 @@ int main() {
     cufftExecC2C(plan, d_filter, d_filter, CUFFT_FORWARD);
 
     // Perform Discrete Fourier Transform by multiplying the signals in frequency form
-    complexMulAndScaleGPU(
+    convolve_1d_fft(
         d_signal,
         d_filter,
         d_product_fft,

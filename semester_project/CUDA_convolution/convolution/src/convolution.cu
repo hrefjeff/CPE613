@@ -24,7 +24,8 @@ cufftComplex ComplexMul(cufftComplex a, cufftComplex b) {
  * @param N: length of input signal
  * @param K: length of filter
 */
-__global__ void convolve_1d_time_kernel (
+__global__
+void convolve_1d_time_kernel (
     float *input, 
     float *kernel,
     float *output,
@@ -52,13 +53,13 @@ __global__ void convolve_1d_time_kernel (
  * @param N: length of input signal
  * @param K: length of filter
 */
-void convolve_1d (
+void convolve_1d_time (
     float* input,
     float* filter,
     float* output,
     int N,
     int K
-){
+) {
 
     int numOfThreads = 32;
     int numOfBlocks = ((N + K - 1) + numOfThreads - 1) / numOfThreads;
@@ -82,12 +83,13 @@ void convolve_1d (
  * @param output: output signal
  * @param size: size of FFT
 */
-__global__ void complexMulGPUKernel(
-                    cufftComplex* input1,
-                    cufftComplex* input2,
-                    cufftComplex* output,
-                    int size
-                ){
+__global__
+void complexMulGPUKernel(
+    cufftComplex* input1,
+    cufftComplex* input2,
+    cufftComplex* output,
+    int size
+) {
     for (int idx = threadIdx.x + blockDim.x * blockIdx.x;
         idx < size;
         idx += blockDim.x * gridDim.x
@@ -106,12 +108,12 @@ __global__ void complexMulGPUKernel(
  * @param output: output signal
  * @param size: size of FFT
 */
-void complexMulAndScaleGPU(
+void convolve_1d_fft(
         cufftComplex* input1,
         cufftComplex* input2,
         cufftComplex* output,
         int size 
-    ) {
+) {
     int blockSize = 32;
     int gridSize = (size + blockSize - 1) / blockSize;
 
@@ -199,14 +201,20 @@ bool read_file_into_vector(std::string filename, std::vector<Complex> & arr) {
  * @param arr - the vector to get the data from
 */
 bool write_results_to_file(const char* fname, std::vector<cufftComplex> arr) {
-
     FILE* filePtr = fopen(fname, "w");
-    float tmp;
-    for (int i = 0; i < arr.size() - 1; i++) {
-        tmp = complex_to_float(arr[i]);
-        typeSpecificfprintf(filePtr, tmp);
+    if (filePtr != NULL) {
+        float tmp;
+        for (int i = 0; i < arr.size() - 1; i++) {
+            tmp = complex_to_float(arr[i]);
+            typeSpecificfprintf(filePtr, tmp);
+        }
+        fclose(filePtr);
     }
-    fclose(filePtr);
+    else {
+        std::cout << "Unable to open file." << std::endl;
+        return false;
+    }
+    return true;
 }
 
 /***
@@ -217,11 +225,10 @@ bool write_results_to_file(const char* fname, std::vector<cufftComplex> arr) {
 */
 template<typename T>
 void dumpGPUDataToFile(
-                T* devicePtrToData,
-                std::vector<int> dimensionsOfData,
-                std::string filename
-            )
-{
+    T* devicePtrToData,
+    std::vector<int> dimensionsOfData,
+    std::string filename
+) {
 
     //checkCudaErrors(cudaDeviceSynchronize()); // force GPU thread to wait
 

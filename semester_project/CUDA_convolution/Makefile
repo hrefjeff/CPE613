@@ -18,8 +18,9 @@ CCFLAGS=-std=c11
 CXXFLAGS=-std=c++11 -O4
 NVCCFLAGS=-std=c++11
 
-#NVCCARCHS=-gencode arch=compute_86,code=sm_86 # Local Machine
-NVCCARCHS=-gencode arch=compute_80,code=sm_80 -gencode arch=compute_70,code=sm_70 # Alabama ASC
+NVCCARCHS=-gencode arch=compute_75,code=sm_75 # Local Desktop
+#NVCCARCHS=-gencode arch=compute_86,code=sm_86 # Local Laptop
+#NVCCARCHS=-gencode arch=compute_80,code=sm_80 -gencode arch=compute_70,code=sm_70 # Alabama ASC
 
 INCPATH=-Iconvolution/include -I$(CUDAPATH)/include
 LIBPATH=-L$(CUDAPATH)/lib64
