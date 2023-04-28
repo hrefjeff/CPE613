@@ -9,7 +9,7 @@ Convolution::Convolution(
     int sizeOfSignals,
     int numOfSignals
 ) : _signal_size(sizeOfSignals), _batch_size(numOfSignals) {
-    if (sizeOfSignals <= 10000) {
+    if (sizeOfSignals <= 512) {
         _method = Method::TimeBased;
     } else {
         _method = Method::FFTBased;
@@ -31,6 +31,14 @@ float* Convolution::get_filter() {
     return _hf_filter;
 }
 
+std::vector<cufftComplex> Convolution::get_signal_complex() {
+    return _hc_signal;
+}
+
+std::vector<cufftComplex> Convolution::get_filter_complex() {
+    return _hc_filter;
+}
+
 /***
  * Allocate memory for signal, filter, and output on host and device
 */
@@ -48,6 +56,33 @@ void Convolution::allocate_float_memory(){
     );
     checkCudaErrors(
         cudaMalloc((void **)&_df_output, total_size * sizeof(float))
+    );
+}
+
+void Convolution::allocate_complex_memory() {
+    _fft_size = next_power_of_two(_signal_size + _signal_size - 1);
+    
+    _hc_signal.resize(_fft_size, cufftComplex{0});
+    _hc_filter.resize(_fft_size, cufftComplex{0});
+    _hc_convolved_result.resize(_fft_size, cufftComplex{0});
+
+    checkCudaErrors(
+        cudaMalloc(
+            (void **)&_dc_signal,
+            _hc_signal.size() * sizeof(cufftComplex)
+        )
+    );
+    checkCudaErrors(
+        cudaMalloc(
+            (void **)&_dc_filter,
+            _hc_filter.size() * sizeof(cufftComplex)
+        )
+    );
+    checkCudaErrors(
+        cudaMalloc(
+            (void **)&_dc_convolved_result,
+            _hc_convolved_result.size() * sizeof(cufftComplex)
+        )
     );
 }
 
@@ -75,6 +110,29 @@ void Convolution::read_file_into_array(
 }
 
 /***
+* Reads a file into a vector of Complex numbers
+* @param filename - the name of the file to read
+* @param arr - the vector to read the file into
+***/
+void Convolution::read_file_into_complex_array(
+    std::string filename,
+    std::vector<cufftComplex> & host_arr
+) {
+    std::ifstream the_file(filename);
+
+    if (the_file.is_open()) {
+        int index = 0;
+        float value;
+        while (the_file >> value) {
+            host_arr[index++] = float_to_complex(value);
+        }
+        the_file.close();
+    } else {
+        std::cout << "Unable to open signal file." << std::endl;
+    }
+}
+
+/***
  * Write results to file
 */
 void Convolution::write_results_to_file(const char* file_name) {
@@ -87,6 +145,24 @@ void Convolution::write_results_to_file(const char* file_name) {
     );
     FILE* filePtr = fopen(file_name, "w");
     for (int i = 0; i < _signal_size + _signal_size - 1; i++) {
+        fprintf (filePtr, "%20.16e\n", _hf_output[i]);
+    }
+    fclose(filePtr);
+}
+
+/***
+ * Write results to file
+*/
+void Convolution::write_complex_results_to_file(const char* file_name) {
+    checkCudaErrors(
+        cudaMemcpy(
+            _hc_convolved_result.data(), _dc_convolved_result,
+            _fft_size * sizeof(float),
+            cudaMemcpyDeviceToHost
+        )
+    );
+    FILE* filePtr = fopen(file_name, "w");
+    for (int i = 0; i < _fft_size; i++) {
         fprintf (filePtr, "%20.16e\n", _hf_output[i]);
     }
     fclose(filePtr);
@@ -119,7 +195,60 @@ void Convolution::compute(){
             _signal_size
         );
     } else {
-        //convolve_1d_fft(_signal, _filter);
+        cufftHandle plan;
+        cufftCreate(&plan);
+        cufftPlan1d(&plan, _fft_size, CUFFT_C2C, _batch_size);
+
+        checkCudaErrors(
+            cudaMemcpy(
+                _dc_signal, _hc_signal.data(),
+                sizeof(cufftComplex) * _hc_signal.size(),
+                cudaMemcpyHostToDevice
+            )
+        );
+
+        checkCudaErrors(
+            cudaMemcpy(
+                _dc_filter, _hc_filter.data(),
+                sizeof(cufftComplex) * _hc_filter.size(),
+                cudaMemcpyHostToDevice
+            )
+        );
+        
+        // Process signal    
+        checkCudaErrors(
+            cufftExecC2C(plan, _dc_signal, _dc_signal, CUFFT_FORWARD)
+        );
+
+        // Process filter
+        checkCudaErrors(
+            cufftExecC2C(plan, _dc_filter, _dc_filter, CUFFT_FORWARD)
+        );
+
+        checkCudaErrors(cudaDeviceSynchronize());
+
+        convolve_1d_fft(
+            _dc_signal,
+            _dc_filter,
+            _dc_convolved_result,
+            _fft_size
+        );
+
+        
+        checkCudaErrors(cudaDeviceSynchronize());
+
+        
+        // Perform inverse to get result
+        checkCudaErrors(
+            cufftExecC2C(
+                plan, _dc_convolved_result, _dc_convolved_result, CUFFT_INVERSE
+            )
+        );
+        
+        checkCudaErrors(cudaDeviceSynchronize());
+
+
+        cufftDestroy(plan);
     }
 }
 
@@ -244,7 +373,7 @@ void complexMulGPUKernel(
  * @param output: output signal
  * @param size: size of FFT
 */
-void convolve_1d_fft(
+void Convolution::convolve_1d_fft(
         cufftComplex* input1,
         cufftComplex* input2,
         cufftComplex* output,

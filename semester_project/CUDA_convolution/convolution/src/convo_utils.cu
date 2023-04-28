@@ -44,28 +44,6 @@ bool read_file_into_array(std::string filename, cufftComplex arr[]) {
 }
 
 /***
-* Reads a file into a vector of Complex numbers
-* @param filename - the name of the file to read
-* @param arr - the vector to read the file into
-***/
-bool read_file_into_vector(std::string filename, std::vector<cufftComplex> & arr) {
-    std::ifstream the_file(filename);
-
-    if (the_file.is_open()) {
-        int index = 0;
-        float value;
-        while (the_file >> value) {
-            arr[index++] = float_to_complex(value);
-        }
-        the_file.close();
-    } else {
-        std::cout << "Unable to open signal file." << std::endl;
-        return false;
-    }
-    return true;
-}
-
-/***
  * Write a file into a vector of Complex numbers
  * @param filename - the name of the file to write to
  * @param arr - the vector to get the data from

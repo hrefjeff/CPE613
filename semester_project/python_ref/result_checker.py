@@ -5,7 +5,7 @@ import numpy as np
 from utils import read_array_from_text_file
 
 gold_file = 'fft_result_8192.txt'
-result_file = 'cuda_fft_8192.txt'
+result_file = 'cuda_time_8192.txt'
 
 # Define paths to testing data
 gold_test_dir = path.abspath(path.join(path.dirname(__file__),

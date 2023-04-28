@@ -22,24 +22,24 @@
 #include <Convolution.h>
 #include <Timer.hpp>
 
-#define N 8192
-#define K 8192
+#define N 1024
+#define K 1024
 #define BATCH_SIZE 1
 
 using namespace std;
 
 int main() {
 
-    Convolution conv(N, BATCH_SIZE);
-    conv.allocate_float_memory();    
-
     // Prepare to read signal and filter information from files
     string signal_file_name =
-        "/home/jeff/code/CPE613/semester_project/test_data_gold/arr1_8192.txt";
+        "/home/jeff/code/CPE613/semester_project/test_data_gold/arr1_1024.txt";
     string filter_file_name =
-        "/home/jeff/code/CPE613/semester_project/test_data_gold/arr2_8192.txt";
+        "/home/jeff/code/CPE613/semester_project/test_data_gold/arr2_1024.txt";
     const char *output_file_name =
-        "/home/jeff/code/CPE613/semester_project/test_data/cuda_time_8192.txt";
+        "/home/jeff/code/CPE613/semester_project/test_data/cuda_time_1024.txt";
+
+    Convolution conv(N, BATCH_SIZE);
+    conv.allocate_float_memory();
 
     conv.read_file_into_array(signal_file_name, conv.get_signal());
     conv.read_file_into_array(filter_file_name, conv.get_filter());

@@ -40,7 +40,8 @@
 #include <helper_cuda.h>
 #include <helper_functions.h>
 
-#include <convolution.h>
+#include <convo_utils.h>
+#include <Convolution.h>
 #include <Timer.hpp>
 
 using namespace std;
