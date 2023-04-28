@@ -21,12 +21,16 @@ class Convolution {
 
         void allocate_float_memory();
         void allocate_complex_memory();
+
         void read_file_into_array(std::string, float*);
         void read_file_into_complex_array(std::string, std::vector<cufftComplex> &);
+
         void write_results_to_file(const char*);
         void write_complex_results_to_file(const char*);
+        
         void compute();
-        static int next_power_of_two(int n);
+
+        int next_power_of_two(int n);
 
         float* get_signal();
         float* get_filter();

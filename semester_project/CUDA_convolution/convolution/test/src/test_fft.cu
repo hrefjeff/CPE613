@@ -10,10 +10,6 @@ https://developer.nvidia.com/blog/cuda-pro-tip-use-cufft-callbacks-custom-data-p
 #include <cstdio>
 #include <cstdlib>
 
-/* Include CUDA stuff */
-#include <cuda_runtime.h>
-#include <cufftXt.h>
-
 /* Include my stuff */
 #include <convo_utils.h>
 #include <Convolution.h>
@@ -27,15 +23,15 @@ using namespace std;
 
 int main() {
 
-    Convolution conv(N, BATCH_SIZE);
-    conv.allocate_complex_memory();
-
     string signal_file_name =
         "/home/jeff/code/CPE613/semester_project/test_data_gold/arr1_4096.txt";
     string filter_file_name =
         "/home/jeff/code/CPE613/semester_project/test_data_gold/arr2_4096.txt";
     const char *output_file_name =
         "/home/jeff/code/CPE613/semester_project/test_data/cuda_fft_4096.txt";
+
+    Convolution conv(N, BATCH_SIZE);
+    conv.allocate_complex_memory();
 
     // Initialize the signal
     vector<cufftComplex> signal;
@@ -45,7 +41,7 @@ int main() {
     conv.read_file_into_complex_array(signal_file_name, signal);
     conv.read_file_into_complex_array(filter_file_name, filter);
     
-
+    // Convolve the signal
     Timer timer;
     timer.start();
     conv.compute();
@@ -59,7 +55,6 @@ int main() {
     "\n- Elapsed Time:             %20.16e Ms\n\n",
         elapsedTime_ms / 1.0e3
     );
-
     
     return EXIT_SUCCESS;
 }
