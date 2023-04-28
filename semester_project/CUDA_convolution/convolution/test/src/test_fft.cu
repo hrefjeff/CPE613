@@ -15,7 +15,8 @@ https://developer.nvidia.com/blog/cuda-pro-tip-use-cufft-callbacks-custom-data-p
 #include <cufftXt.h>
 
 /* Include my stuff */
-#include <convolution.h>
+#include <convo_utils.h>
+#include <Convolution.h>
 #include <Timer.hpp>
 
 #define N 4096
@@ -25,6 +26,9 @@ https://developer.nvidia.com/blog/cuda-pro-tip-use-cufft-callbacks-custom-data-p
 using namespace std;
 
 int main() {
+
+    Convolution conv(N, BATCH_SIZE);
+
     cufftHandle plan;
     cudaStream_t stream = NULL;
 
@@ -73,6 +77,8 @@ int main() {
     );
 
     // Initialize the result
+    
+    Convolution conv(signal, filter, BATCH_SIZE);
 
     // host result initialization
     vector<cufftComplex> h_convolved_result(FFT_SIZE, cufftComplex{0});
