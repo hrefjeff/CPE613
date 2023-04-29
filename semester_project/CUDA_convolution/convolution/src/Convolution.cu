@@ -13,58 +13,20 @@ Convolution::Convolution(
         _method = Method::TimeBased;
     } else {
         _method = Method::FFTBased;
-        _fft_size = (sizeOfSignals + sizeOfSignals - 1);
     }
+    _output_size = next_power_of_two(_signal_size + _signal_size - 1);
 }
 
-/***
- * Return pointer to host signal array
-*/
-float* Convolution::get_signal() {
-    return _hf_signal;
-}
-
-/***
- * Return pointer to host filter array
-*/
-float* Convolution::get_filter() {
-    return _hf_filter;
-}
-
-std::vector<cufftComplex> Convolution::get_signal_complex() {
-    return _hc_signal;
-}
-
-std::vector<cufftComplex> Convolution::get_filter_complex() {
-    return _hc_filter;
-}
-
-/***
- * Allocate memory for signal, filter, and output on host and device
-*/
-void Convolution::allocate_float_memory(){
-    // Allocate memory for signal, filter, and output
-    int total_size = _signal_size + _signal_size - 1;
-    _hf_signal = new float[_signal_size];
-    _hf_filter = new float[_signal_size];
-    _hf_output = new float[total_size - 1];
-    checkCudaErrors(
-        cudaMalloc((void **)&_df_signal, _signal_size * sizeof(float))
-    );
-    checkCudaErrors(
-        cudaMalloc((void **)&_df_filter, _signal_size * sizeof(float))
-    );
-    checkCudaErrors(
-        cudaMalloc((void **)&_df_output, total_size * sizeof(float))
-    );
-}
-
-void Convolution::allocate_complex_memory() {
-    _fft_size = next_power_of_two(_signal_size + _signal_size - 1);
+void Convolution::allocate_memory() {
+    if (_method == Method::TimeBased) {
+        _hc_signal.resize(_signal_size, cufftComplex{0});
+        _hc_filter.resize(_signal_size, cufftComplex{0});
+    } else if (_method == Method::FFTBased) {
+        _hc_signal.resize(_output_size, cufftComplex{0});
+        _hc_filter.resize(_output_size, cufftComplex{0});
+    }
     
-    _hc_signal.resize(_fft_size, cufftComplex{0});
-    _hc_filter.resize(_fft_size, cufftComplex{0});
-    _hc_convolved_result.resize(_fft_size, cufftComplex{0});
+    _hc_output.resize(_output_size, cufftComplex{0});
 
     checkCudaErrors(
         cudaMalloc(
@@ -80,40 +42,17 @@ void Convolution::allocate_complex_memory() {
     );
     checkCudaErrors(
         cudaMalloc(
-            (void **)&_dc_convolved_result,
-            _hc_convolved_result.size() * sizeof(cufftComplex)
+            (void **)&_dc_output,
+            _hc_output.size() * sizeof(cufftComplex)
         )
     );
-}
-
-/***
- * Read data from file and put it into array
- * @param filename: name of file to read from
- * @param host_arr: array to put data into
-*/
-void Convolution::read_file_into_array(
-    std::string filename,
-    float* host_arr
-) {
-    std::ifstream the_file(filename);
-
-    if (the_file.is_open()) {
-        int index = 0;
-        float value;
-        while (the_file >> value) {
-            host_arr[index++] = (float)(value);
-        }
-        the_file.close();
-    } else {
-        std::cout << "Unable to open signal file." << std::endl;
-    }
 }
 
 /***
 * Reads a file into a signal vector of type cufftComplex
 * @param filename - the name of the file to read
 ***/
-void Convolution::read_file_into_complex_signal(std::string filename) {
+void Convolution::read_file_into_signal(std::string filename) {
     std::ifstream the_file(filename);
 
     if (the_file.is_open()) {
@@ -126,14 +65,20 @@ void Convolution::read_file_into_complex_signal(std::string filename) {
     } else {
         std::cout << "Unable to open signal file." << std::endl;
     }
+    checkCudaErrors(
+        cudaMemcpy(
+            _dc_signal, _hc_signal.data(),
+            _hc_signal.size() * sizeof(cufftComplex),
+            cudaMemcpyHostToDevice
+        )
+    );
 }
 
 /***
 * Reads a file into a filter vector of type cufftComplex
 * @param filename - the name of the file to read
-* @param arr - the vector to read the file into
 ***/
-void Convolution::read_file_into_complex_filter(std::string filename) {
+void Convolution::read_file_into_filter(std::string filename) {
     std::ifstream the_file(filename);
 
     if (the_file.is_open()) {
@@ -146,6 +91,13 @@ void Convolution::read_file_into_complex_filter(std::string filename) {
     } else {
         std::cout << "Unable to open signal file." << std::endl;
     }
+    checkCudaErrors(
+        cudaMemcpy(
+            _dc_filter, _hc_filter.data(),
+            _hc_filter.size() * sizeof(cufftComplex),
+            cudaMemcpyHostToDevice
+        )
+    );
 }
 
 /***
@@ -154,36 +106,18 @@ void Convolution::read_file_into_complex_filter(std::string filename) {
 void Convolution::write_results_to_file(const char* file_name) {
     checkCudaErrors(
         cudaMemcpy(
-            _hf_output, _df_output,
-            (_signal_size + _signal_size - 1) * sizeof(float),
-            cudaMemcpyDeviceToHost
-        )
-    );
-    FILE* filePtr = fopen(file_name, "w");
-    for (int i = 0; i < _signal_size + _signal_size - 1; i++) {
-        fprintf (filePtr, "%20.16e\n", _hf_output[i]);
-    }
-    fclose(filePtr);
-}
-
-/***
- * Write results to file
-*/
-void Convolution::write_complex_results_to_file(const char* file_name) {
-    checkCudaErrors(
-        cudaMemcpy(
-            _hc_convolved_result.data(), _dc_convolved_result,
-            _fft_size * sizeof(cufftComplex),
+            _hc_output.data(), _dc_output,
+            (_output_size - 1) * sizeof(cufftComplex),
             cudaMemcpyDeviceToHost
         )
     );
 
     FILE* filePtr = fopen(file_name, "w");
-    for (int i = 0; i < _fft_size; i++) {
+    for (int i = 0; i < (_output_size - 1); i++) {
         fprintf(
             filePtr,
             "%20.16e\n",
-            complex_to_float(_hc_convolved_result[i])
+            complex_to_float(_hc_output[i])
         );
     }
     fclose(filePtr);
@@ -194,48 +128,21 @@ void Convolution::write_complex_results_to_file(const char* file_name) {
 */
 void Convolution::compute(){
     if (_method == Method::TimeBased) {
-        checkCudaErrors(
-            cudaMemcpy(
-                _df_signal, _hf_signal,
-                _signal_size * sizeof(float),
-                cudaMemcpyHostToDevice
-            )
-        );
-        checkCudaErrors(
-            cudaMemcpy(
-                _df_filter, _hf_filter,
-                _signal_size * sizeof(float),
-                cudaMemcpyHostToDevice
-            )
-        );
+        
         convolve_1d_time(
-            _df_signal,
-            _df_filter,
-            _df_output,
+            _dc_signal,
+            _dc_filter,
+            _dc_output,
             _signal_size,
             _signal_size
         );
+
     } else {
+
         cufftHandle plan;
         cufftCreate(&plan);
-        cufftPlan1d(&plan, _fft_size, CUFFT_C2C, _batch_size);
+        cufftPlan1d(&plan, _output_size, CUFFT_C2C, _batch_size);
 
-        checkCudaErrors(
-            cudaMemcpy(
-                _dc_signal, _hc_signal.data(),
-                sizeof(cufftComplex) * _hc_signal.size(),
-                cudaMemcpyHostToDevice
-            )
-        );
-
-        checkCudaErrors(
-            cudaMemcpy(
-                _dc_filter, _hc_filter.data(),
-                sizeof(cufftComplex) * _hc_filter.size(),
-                cudaMemcpyHostToDevice
-            )
-        );
-        
         // Process signal    
         checkCudaErrors(
             cufftExecC2C(plan, _dc_signal, _dc_signal, CUFFT_FORWARD)
@@ -251,14 +158,14 @@ void Convolution::compute(){
         convolve_1d_fft(
             _dc_signal,
             _dc_filter,
-            _dc_convolved_result,
-            _fft_size
+            _dc_output,
+            _output_size
         );
         
         // Perform inverse to get result
         checkCudaErrors(
             cufftExecC2C(
-                plan, _dc_convolved_result, _dc_convolved_result, CUFFT_INVERSE
+                plan, _dc_output, _dc_output, CUFFT_INVERSE
             )
         );
         
@@ -295,6 +202,15 @@ cufftComplex ComplexMul(cufftComplex a, cufftComplex b) {
     return c;
 }
 
+// Complex addition
+static __device__ __host__ inline
+cufftComplex ComplexAdd(cufftComplex a, cufftComplex b) {
+  cufftComplex c;
+  c.x = a.x + b.x;
+  c.y = a.y + b.y;
+  return c;
+}
+
 /***
  * @brief: 1D convolution in time domain
  * @param input: input signal
@@ -305,21 +221,29 @@ cufftComplex ComplexMul(cufftComplex a, cufftComplex b) {
 */
 __global__
 void convolve_1d_time_kernel (
-    float *input, 
-    float *kernel,
-    float *output,
+    cufftComplex *input, 
+    cufftComplex *kernel,
+    cufftComplex *output,
     int N,
     int K
 ) {
     int idxInput = threadIdx.x + blockIdx.x * blockDim.x;
     if (idxInput > N + K - 1) return;
 
-    float result = 0.0;
+    cufftComplex result = cufftComplex{0.0};
     for (int idxFilter = 0; idxFilter < K; idxFilter++) {
-        if((idxInput - idxFilter) < 0 || (idxInput - idxFilter) >= N)
-            result += 0;
-        else
-            result += (float)(kernel[idxFilter] * input[idxInput - idxFilter]);
+        if((idxInput - idxFilter) < 0 || (idxInput - idxFilter) >= N) {
+            result = ComplexAdd(result, cufftComplex{0.0});
+        }
+        else {
+            result = ComplexAdd(
+                        result,
+                        ComplexMul(
+                            kernel[idxFilter],
+                            input[idxInput - idxFilter]
+                        )
+                );
+        }
     }
     output[idxInput] = result;
 }
@@ -333,9 +257,9 @@ void convolve_1d_time_kernel (
  * @param K: length of filter
 */
 void Convolution::convolve_1d_time (
-    float* input,
-    float* filter,
-    float* output,
+    cufftComplex* input,
+    cufftComplex* filter,
+    cufftComplex* output,
     int N,
     int K
 ) {
@@ -350,7 +274,7 @@ void Convolution::convolve_1d_time (
         output,
         N,
         K
-    ); 
+    );
   
     checkCudaErrors(cudaGetLastError());
 }
@@ -374,9 +298,9 @@ void complexMulGPUKernel(
         idx += blockDim.x * gridDim.x
     ){
         output[idx] = ComplexScale(
-                            ComplexMul(input1[idx], input2[idx]),
-                            1.0 / size
-                        );
+                        ComplexMul(input1[idx], input2[idx]),
+                        1.0 / size
+                    );
     }
 }
 

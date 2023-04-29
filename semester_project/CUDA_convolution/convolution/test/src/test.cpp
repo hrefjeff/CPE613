@@ -1,7 +1,3 @@
-/* Include my stuff */
-#include <Convolution.h>
-#include <Timer.hpp>
-
 /* Include C++ stuff */
 #include <cmath>
 #include <string.h>
@@ -16,6 +12,8 @@
 
 using namespace std;
 
+void host_convolution(float *array, float *mask, float *result, int n, int m);
+
 int main() {
 
     int TOTAL_SIZE = N + K - 1;
@@ -24,18 +22,14 @@ int main() {
     float *h_input = new float[N];
     float *h_filter = new float[K];
     float *h_output = new float[TOTAL_SIZE];
-    float *d_input, *d_filter, *d_output;
-    cudaMalloc((void **)&d_input, N * sizeof(float));
-    cudaMalloc((void **)&d_filter, K * sizeof(float));
-    cudaMalloc((void **)&d_output, TOTAL_SIZE * sizeof(float));
-
+    
     // Prepare to read signal and filter information from files
     string signal_file_name =
         "/home/jeff/code/CPE613/semester_project/test_data_gold/arr1_1024.txt";
     string filter_file_name =
         "/home/jeff/code/CPE613/semester_project/test_data_gold/arr2_1024.txt";
     const char *output_file_name =
-        "/home/jeff/code/CPE613/semester_project/test_data/cuda_time_1024.txt";
+        "/home/jeff/code/CPE613/semester_project/test_data/cpp_conv_1024.txt";
 
     ifstream signal_file(signal_file_name);
     ifstream filter_file(filter_file_name);
@@ -65,20 +59,7 @@ int main() {
         return 1;
     }
 
-    // Copy data from host to device
-    cudaMemcpy(d_input, h_input, N * sizeof(float), cudaMemcpyHostToDevice);
-    cudaMemcpy(d_filter, h_filter, K * sizeof(float), cudaMemcpyHostToDevice);
-
-    // Perform convolution
-    convolve_1d_time(d_input, d_filter, d_output, N, K);
-
-    // Copy data from device to host
-    cudaMemcpy(
-        h_output,
-        d_output,
-        TOTAL_SIZE * sizeof(float),
-        cudaMemcpyDeviceToHost
-    );
+    host_convolution(h_input, h_filter, h_output, N, K);
 
     // Save the array to an output file
     FILE * fp;
@@ -90,8 +71,23 @@ int main() {
 
     delete[] h_input;
     delete[] h_filter;
-    cudaFree(d_input);
-    cudaFree(d_filter);
-    cudaFree(d_output);
+    delete[] h_output;
     return 0;
+}
+
+// Verify the result on the CPU
+void host_convolution(float *array, float *mask, float *result, int n, int m) {
+  int radius = m;
+  int temp;
+  int start;
+  for (int i = 0; i < n; i++) {
+    start = i - radius;
+    temp = 0;
+    for (int j = 0; j < m; j++) {
+      if ((start + j >= 0) && (start + j < n)) {
+        temp += array[start + j] * mask[j];
+      }
+    }
+    result[i] = temp;
+  }
 }
