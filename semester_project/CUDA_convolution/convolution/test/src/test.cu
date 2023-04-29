@@ -1,0 +1,61 @@
+/* TODO: Implement Callbacks
+
+https://developer.nvidia.com/blog/cuda-pro-tip-use-cufft-callbacks-custom-data-processing/
+
+*/
+
+/* Include C++ stuff */
+#include <complex>
+#include <string.h>
+#include <cstdio>
+#include <cstdlib>
+
+/* Include my stuff */
+#include <Convolution.h>
+#include <Timer.hpp>
+
+#define N 4096
+#define K 4096
+#define BATCH_SIZE 1
+
+using namespace std;
+
+int main() {
+
+    string signal_file_name =
+        "/home/jeff/code/CPE613/semester_project/test_data_gold/arr1_4096.txt";
+    string filter_file_name =
+        "/home/jeff/code/CPE613/semester_project/test_data_gold/arr2_4096.txt";
+    const char *output_file_name =
+        "/home/jeff/code/CPE613/semester_project/test_data/cuda_fft_4096.txt";
+
+    Convolution conv(N, BATCH_SIZE);
+
+    // Allocate memory for both types of memory that can be used
+    // TODO: condense to one allocation
+    conv.allocate_complex_memory();
+    conv.allocate_float_memory();
+
+    // Initialize the signal and filter
+    conv.read_file_into_array(signal_file_name, conv.get_signal());
+    conv.read_file_into_array(signal_file_name, conv.get_filter());
+    conv.read_file_into_complex_signal(signal_file_name);
+    conv.read_file_into_complex_filter(filter_file_name);
+    
+    // Convolve the signal
+    Timer timer;
+    timer.start();
+    conv.compute();
+    timer.stop();
+    
+    conv.write_complex_results_to_file(output_file_name);
+
+    double elapsedTime_ms = timer.elapsedTime_ms();
+
+    printf (
+    "\n- Elapsed Time:             %20.16e Ms\n\n",
+        elapsedTime_ms / 1.0e3
+    );
+    
+    return EXIT_SUCCESS;
+}

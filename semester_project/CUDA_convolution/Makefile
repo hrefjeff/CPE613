@@ -30,7 +30,7 @@ LIBS=-lcudart
 .PHONY: clean
 
 all: build/lib/libTimer.so build/lib/libconvolution.so \
-	build/bin/convolution_time_test build/bin/convolution_fft_test \
+	build/lib/libconvo_utils.so build/bin/convolution_test \
 	build/bin/nvidia_example_test
 
 build/lib/libTimer.so: Timer/src/Timer.cpp
@@ -44,50 +44,55 @@ build/lib/libTimer.so: Timer/src/Timer.cpp
 	@mkdir -p build/include
 	@ln -sf ./Timer/include/Timer.hpp build/include/Timer.hpp
 
-build/lib/libconvolution.so: convolution/src/convolution.cu
-	@mkdir -p build/.objects/convolution
+build/lib/libconvo_utils.so: convolution/src/convo_utils.cu
+	@mkdir -p build/.objects/convo_utils
 	$(NVCC) -pg $(NVCCFLAGS) -Xcompiler -fPIC -Iconvolution/include \
 		-I$(CUDAPATH)$(SAMPLESPATH) -dc -o \
-		build/.objects/convolution/convolution.o \
-		convolution/src/convolution.cu
+		build/.objects/convo_utils/convo_utils.o \
+		convolution/src/convo_utils.cu
 	$(NVCC) -pg $(NVCCFLAGS) $(NVCCARCHS) -Xcompiler -fPIC \
-		-dlink -o build/.objects/convolution/convolution-dlink.o \
-		build/.objects/convolution/convolution.o
+		-dlink -o build/.objects/convo_utils/convolutionutils-dlink.o \
+		build/.objects/convo_utils/convo_utils.o
 	mkdir -p build/lib
-	$(CC) -shared -o build/lib/libconvolution.so build/.objects/convolution/* \
+	$(CC) -shared -o build/lib/libconvo_utils.so build/.objects/convo_utils/* \
 		-Wl,-rpath=$(CUDAPATH)/lib64 -L$(CUDAPATH)/lib64 -lcudart
 	@mkdir -p build/include
-	@ln -sf ../../convolution/include/convolution.h build/include/convolution.h
+	@ln -sf ../../convolution/include/convo_utils.h build/include/convo_utils.h
 
-build/bin/convolution_time_test: build/lib/libTimer.so build/lib/libconvolution.so \
-	convolution/test/src/conv_1d_time.cu
+build/lib/libconvolution.so: convolution/src/Convolution.cu
+	@mkdir -p build/.objects/convolutionclass
+	$(NVCC) -pg $(NVCCFLAGS) -Xcompiler -fPIC -Iconvolution/include \
+		-I$(CUDAPATH)$(SAMPLESPATH) -dc -o \
+		build/.objects/convolutionclass/convolutionclass.o \
+		convolution/src/Convolution.cu
+	$(NVCC) -pg $(NVCCFLAGS) $(NVCCARCHS) -Xcompiler -fPIC \
+		-dlink -o build/.objects/convolutionclass/convolution-dlink.o \
+		build/.objects/convolutionclass/convolutionclass.o
+	mkdir -p build/lib
+	$(CC) -shared -o build/lib/libconvolutionclass.so build/.objects/convolutionclass/* \
+		-Wl,-rpath=$(CUDAPATH)/lib64 -L$(CUDAPATH)/lib64 -lcudart
+	@mkdir -p build/include
+	@ln -sf ../../convolution/include/Convolution.h build/include/Convolution.h
+
+build/bin/convolution_test: build/lib/libTimer.so build/lib/libconvolution.so \
+	build/lib/libconvo_utils.so convolution/test/src/test.cu
 	@mkdir -p build/bin
 	$(NVCC) -Ibuild/include -I$(CUDAPATH)$(SAMPLESPATH) \
 		-I$(CUDAPATH)/include -ITimer/include \
-		-o build/bin/convolution_time_test convolution/test/src/conv_1d_time.cu \
+		-o build/bin/convolution_test convolution/test/src/test.cu \
 		-Xlinker=-rpath=$(PWD)/build/lib \
 		-Lbuild/lib -L$(CUDAPATH)/lib64 \
-		-lTimer -lconvolution -lcudart -lcufft
-
-build/bin/convolution_fft_test: build/lib/libTimer.so build/lib/libconvolution.so \
-	convolution/test/src/test_fft.cu
-	@mkdir -p build/bin
-	$(NVCC) -Ibuild/include -I$(CUDAPATH)$(SAMPLESPATH) \
-		-I$(CUDAPATH)/include -ITimer/include \
-		-o build/bin/convolution_fft_test convolution/test/src/test_fft.cu \
-		-Xlinker=-rpath=$(PWD)/build/lib \
-		-Lbuild/lib -L$(CUDAPATH)/lib64 \
-		-lTimer -lconvolution -lcudart -lcufft
+		-lTimer -lconvolutionclass -lconvo_utils -lcudart -lcufft
 
 build/bin/nvidia_example_test: build/lib/libTimer.so build/lib/libconvolution.so \
-	convolution/test/src/nvidia_example.cu
+	build/lib/libconvo_utils.so convolution/test/src/nvidia_example.cu
 	@mkdir -p build/bin
 	$(NVCC) -Ibuild/include -I$(CUDAPATH)$(SAMPLESPATH) \
 		-I$(CUDAPATH)/include -ITimer/include \
 		-o build/bin/nvidia_example_test convolution/test/src/nvidia_example.cu \
 		-Xlinker=-rpath=$(PWD)/build/lib \
 		-Lbuild/lib -L$(CUDAPATH)/lib64 \
-		-lTimer -lconvolution -lcudart -lcufft
+		-lTimer -lconvolutionclass -lconvo_utils -lcudart -lcufft
 
 clean:
 	rm -rf build
