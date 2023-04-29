@@ -14,8 +14,8 @@ https://developer.nvidia.com/blog/cuda-pro-tip-use-cufft-callbacks-custom-data-p
 #include <Convolution.h>
 #include <Timer.hpp>
 
-#define N 512
-#define K 512
+#define N 8192
+#define K 8192
 #define BATCH_SIZE 1
 
 using namespace std;
@@ -23,11 +23,11 @@ using namespace std;
 int main() {
 
     string signal_file_name =
-        "/home/jeff/code/CPE613/semester_project/test_data_gold/arr1_512.txt";
+        "/home/jeff/code/CPE613/semester_project/test_data_gold/arr1_8192.txt";
     string filter_file_name =
-        "/home/jeff/code/CPE613/semester_project/test_data_gold/arr2_512.txt";
+        "/home/jeff/code/CPE613/semester_project/test_data_gold/arr2_8192.txt";
     const char *output_file_name =
-        "/home/jeff/code/CPE613/semester_project/test_data/conv_512.txt";
+        "/home/jeff/code/CPE613/semester_project/test_data/conv_8192.txt";
 
     Convolution conv(N, BATCH_SIZE);
 

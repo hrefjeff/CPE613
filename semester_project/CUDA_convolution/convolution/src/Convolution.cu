@@ -65,6 +65,13 @@ void Convolution::read_file_into_signal(std::string filename) {
     } else {
         std::cout << "Unable to open signal file." << std::endl;
     }
+    checkCudaErrors(
+        cudaMemcpy(
+            _dc_signal, _hc_signal.data(),
+            _hc_signal.size() * sizeof(cufftComplex),
+            cudaMemcpyHostToDevice
+        )
+    );
 }
 
 /***
@@ -121,20 +128,7 @@ void Convolution::write_results_to_file(const char* file_name) {
 */
 void Convolution::compute(){
     if (_method == Method::TimeBased) {
-        checkCudaErrors(
-            cudaMemcpy(
-                _dc_signal, _hc_signal.data(),
-                _signal_size * sizeof(cufftComplex),
-                cudaMemcpyHostToDevice
-            )
-        );
-        checkCudaErrors(
-            cudaMemcpy(
-                _dc_filter, _hc_filter.data(),
-                _signal_size * sizeof(cufftComplex),
-                cudaMemcpyHostToDevice
-            )
-        );
+        
         convolve_1d_time(
             _dc_signal,
             _dc_filter,
@@ -142,27 +136,13 @@ void Convolution::compute(){
             _signal_size,
             _signal_size
         );
+
     } else {
-        
+
         cufftHandle plan;
         cufftCreate(&plan);
         cufftPlan1d(&plan, _output_size, CUFFT_C2C, _batch_size);
 
-        checkCudaErrors(
-            cudaMemcpy(
-                _dc_signal, _hc_signal.data(),
-                _hc_signal.size() * sizeof(cufftComplex),
-                cudaMemcpyHostToDevice
-            )
-        );
-        checkCudaErrors(
-            cudaMemcpy(
-                _dc_filter, _hc_filter.data(),
-                _hc_filter.size() * sizeof(cufftComplex),
-                cudaMemcpyHostToDevice
-            )
-        );
-        
         // Process signal    
         checkCudaErrors(
             cufftExecC2C(plan, _dc_signal, _dc_signal, CUFFT_FORWARD)
