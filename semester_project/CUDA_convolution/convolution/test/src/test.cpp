@@ -1,5 +1,5 @@
 /* Include my stuff */
-#include <convolution.h>
+#include <Convolution.h>
 #include <Timer.hpp>
 
 /* Include C++ stuff */

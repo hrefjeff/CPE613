@@ -19,11 +19,13 @@ class Convolution {
             int numberOfSignals
         );
 
+        cufftComplex getFirstElement();
         void allocate_float_memory();
         void allocate_complex_memory();
 
         void read_file_into_array(std::string, float*);
-        void read_file_into_complex_array(std::string, std::vector<cufftComplex> &);
+        void read_file_into_complex_signal(std::string);
+        void read_file_into_complex_filter(std::string);
 
         void write_results_to_file(const char*);
         void write_complex_results_to_file(const char*);

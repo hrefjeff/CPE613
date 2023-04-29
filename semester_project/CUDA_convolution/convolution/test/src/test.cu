@@ -30,15 +30,17 @@ int main() {
         "/home/jeff/code/CPE613/semester_project/test_data/cuda_fft_4096.txt";
 
     Convolution conv(N, BATCH_SIZE);
-    conv.allocate_complex_memory();
 
-    // Initialize the signal
-    vector<cufftComplex> signal;
-    signal = conv.get_signal_complex();
-    vector<cufftComplex> filter;
-    filter = conv.get_filter_complex();
-    conv.read_file_into_complex_array(signal_file_name, signal);
-    conv.read_file_into_complex_array(filter_file_name, filter);
+    // Allocate memory for both types of memory that can be used
+    // TODO: condense to one allocation
+    conv.allocate_complex_memory();
+    conv.allocate_float_memory();
+
+    // Initialize the signal and filter
+    conv.read_file_into_array(signal_file_name, conv.get_signal());
+    conv.read_file_into_array(signal_file_name, conv.get_filter());
+    conv.read_file_into_complex_signal(signal_file_name);
+    conv.read_file_into_complex_filter(filter_file_name);
     
     // Convolve the signal
     Timer timer;

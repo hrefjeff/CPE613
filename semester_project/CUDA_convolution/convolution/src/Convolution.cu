@@ -110,21 +110,37 @@ void Convolution::read_file_into_array(
 }
 
 /***
-* Reads a file into a vector of Complex numbers
+* Reads a file into a signal vector of type cufftComplex
 * @param filename - the name of the file to read
-* @param arr - the vector to read the file into
 ***/
-void Convolution::read_file_into_complex_array(
-    std::string filename,
-    std::vector<cufftComplex> & host_arr
-) {
+void Convolution::read_file_into_complex_signal(std::string filename) {
     std::ifstream the_file(filename);
 
     if (the_file.is_open()) {
         int index = 0;
         float value;
         while (the_file >> value) {
-            host_arr[index++] = float_to_complex(value);
+            _hc_signal[index++] = float_to_complex(value);
+        }
+        the_file.close();
+    } else {
+        std::cout << "Unable to open signal file." << std::endl;
+    }
+}
+
+/***
+* Reads a file into a filter vector of type cufftComplex
+* @param filename - the name of the file to read
+* @param arr - the vector to read the file into
+***/
+void Convolution::read_file_into_complex_filter(std::string filename) {
+    std::ifstream the_file(filename);
+
+    if (the_file.is_open()) {
+        int index = 0;
+        float value;
+        while (the_file >> value) {
+            _hc_filter[index++] = float_to_complex(value);
         }
         the_file.close();
     } else {
@@ -157,7 +173,7 @@ void Convolution::write_complex_results_to_file(const char* file_name) {
     checkCudaErrors(
         cudaMemcpy(
             _hc_convolved_result.data(), _dc_convolved_result,
-            _fft_size * sizeof(float),
+            _fft_size * sizeof(cufftComplex),
             cudaMemcpyDeviceToHost
         )
     );
