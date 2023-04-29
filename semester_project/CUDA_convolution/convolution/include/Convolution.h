@@ -28,10 +28,6 @@ class Convolution {
         void compute();
 
         int next_power_of_two(int n);
-
-        std::vector<cufftComplex> get_signal();
-        std::vector<cufftComplex> get_filter();
-
     private:
         enum class Method {
             TimeBased,

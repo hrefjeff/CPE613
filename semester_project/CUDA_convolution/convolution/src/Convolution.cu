@@ -14,19 +14,10 @@ Convolution::Convolution(
     } else {
         _method = Method::FFTBased;
     }
-}
-
-std::vector<cufftComplex> Convolution::get_signal() {
-    return _hc_signal;
-}
-
-std::vector<cufftComplex> Convolution::get_filter() {
-    return _hc_filter;
+    _output_size = next_power_of_two(_signal_size + _signal_size - 1);
 }
 
 void Convolution::allocate_memory() {
-    _output_size = next_power_of_two(_signal_size + _signal_size - 1);
-    
     if (_method == Method::TimeBased) {
         _hc_signal.resize(_signal_size, cufftComplex{0});
         _hc_filter.resize(_signal_size, cufftComplex{0});
@@ -109,13 +100,13 @@ void Convolution::write_results_to_file(const char* file_name) {
     checkCudaErrors(
         cudaMemcpy(
             _hc_output.data(), _dc_output,
-            _hc_output.size() - 1 * sizeof(cufftComplex),
+            (_output_size - 1) * sizeof(cufftComplex),
             cudaMemcpyDeviceToHost
         )
     );
 
     FILE* filePtr = fopen(file_name, "w");
-    for (int i = 0; i < _hc_output.size() - 1; i++) {
+    for (int i = 0; i < (_output_size - 1); i++) {
         fprintf(
             filePtr,
             "%20.16e\n",
@@ -352,92 +343,4 @@ void Convolution::convolve_1d_fft(
     complexMulGPUKernel<<<gridSize, blockSize>>>(input1, input2, output, size);
 
     checkCudaErrors(cudaGetLastError());
-}
-
-
-/***
- * Dump GPU data to a file
- * @param devicePtrToData: pointer to data on GPU
- * @param dimensionsOfData: dimensions of data
- * @param filename: name of file to dump data to
-*/
-template<typename T>
-void dumpGPUDataToFile(
-    T* devicePtrToData,
-    std::vector<int> dimensionsOfData,
-    std::string filename
-) {
-
-    //checkCudaErrors(cudaDeviceSynchronize()); // force GPU thread to wait
-
-    int totalNumElements = 1;
-    for(auto elts : dimensionsOfData) {
-        totalNumElements *= elts;
-    }
-
-    std::vector<T> hostData(totalNumElements, T{0});
-
-    checkCudaErrors(cudaMemcpy(
-        hostData.data(),
-        devicePtrToData,
-        totalNumElements * sizeof(T),
-        cudaMemcpyDeviceToHost
-    ));
-
-
-    // size of vector of dims
-    FILE* filePtr = fopen(filename.c_str(), "w");
-    // write how many dims we have
-    fprintf(filePtr, "%zu\n", dimensionsOfData.size());
-    for(auto elts : dimensionsOfData) {
-        fprintf(filePtr,"%d\n", elts);
-    }
-
-    dataTypeWriter<T>(filePtr);
-
-    for(auto elt : hostData) {
-        // support multiple types or use C++
-        typeSpecificfprintf(filePtr, elt);
-    }
-    fclose(filePtr);
-}
-
-
-template <typename T>
-void dataTypeWriter(FILE* filePtr);
-
-template<>
-void dataTypeWriter<double>(FILE* filePtr){
-    fprintf(filePtr, "double\n");
-}
-
-template<>
-void dataTypeWriter<cufftComplex>(FILE* filePtr){
-    fprintf(filePtr, "complex\n");
-}
-
-template<>
-void dataTypeWriter<float>(FILE* filePtr){
-    fprintf(filePtr, "float\n");
-}
-
-template<>
-void typeSpecificfprintf<cufftComplex>(FILE* fptr, cufftComplex const & data){
-
-    fprintf(fptr, "%20.16e %20.16e\n", data.x, data.y);
-
-}
-
-template<>
-void typeSpecificfprintf<double>(FILE* fptr, double const & data){
-
-    fprintf(fptr, "%20.16f\n", data);
-
-}
-
-template<>
-void typeSpecificfprintf<float>(FILE* fptr, float const & data){
-
-    fprintf(fptr, "%20.16e\n", data);
-
 }

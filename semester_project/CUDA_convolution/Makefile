@@ -4,9 +4,9 @@ NVCC=nvcc
 
 SAMPLESPATH=/cuda-samples/Common
 # === Local Laptop Settings ===
-CUDAPATH=/usr/local/cuda-11.7
+#CUDAPATH=/usr/local/cuda-11.7
 # === Local Desktop Settings ===
-#CUDAPATH=/usr/local/cuda-12.0
+CUDAPATH=/usr/local/cuda-12.0
 
 # Remote Alabama ASC
 #CUDAPATH=/opt/asn/apps/cuda_11.7.0
