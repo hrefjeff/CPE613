@@ -16,6 +16,5 @@
 3. Ensure the settings under `Desktop` or `Laptop` are uncommented
 4. Run the command `make` in the terminal
 5. Run the command for the corresponding convolution test
-    - ./build/bin/convolution_time_test
-    - ./build/bin/convolution_fft_test
-    - ./build/bin/convolution_fft_test
+    - ./build/bin/convolution_test
+    - ./build/bin/convolution_nvidia_example
