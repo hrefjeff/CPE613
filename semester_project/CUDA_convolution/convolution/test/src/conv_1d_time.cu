@@ -18,7 +18,6 @@
 #include <iostream>
 #include <complex>
 
-#include <convo_utils.h>
 #include <Convolution.h>
 #include <Timer.hpp>
 

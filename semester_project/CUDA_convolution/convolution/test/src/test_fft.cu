@@ -11,7 +11,6 @@ https://developer.nvidia.com/blog/cuda-pro-tip-use-cufft-callbacks-custom-data-p
 #include <cstdlib>
 
 /* Include my stuff */
-#include <convo_utils.h>
 #include <Convolution.h>
 #include <Timer.hpp>
 

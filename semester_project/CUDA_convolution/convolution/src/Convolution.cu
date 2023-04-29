@@ -161,9 +161,14 @@ void Convolution::write_complex_results_to_file(const char* file_name) {
             cudaMemcpyDeviceToHost
         )
     );
+
     FILE* filePtr = fopen(file_name, "w");
     for (int i = 0; i < _fft_size; i++) {
-        fprintf (filePtr, "%20.16e\n", _hf_output[i]);
+        fprintf(
+            filePtr,
+            "%20.16e\n",
+            complex_to_float(_hc_convolved_result[i])
+        );
     }
     fclose(filePtr);
 }
@@ -233,10 +238,6 @@ void Convolution::compute(){
             _dc_convolved_result,
             _fft_size
         );
-
-        
-        checkCudaErrors(cudaDeviceSynchronize());
-
         
         // Perform inverse to get result
         checkCudaErrors(
@@ -245,9 +246,6 @@ void Convolution::compute(){
             )
         );
         
-        checkCudaErrors(cudaDeviceSynchronize());
-
-
         cufftDestroy(plan);
     }
 }
