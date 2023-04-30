@@ -12,11 +12,17 @@
 ## How to run on fresh environment
 
 1. Ensure Python3 & Pip is installed
-2. Run cmd `python3 -m venv env`
+2. Run cmd `python3 -m venv env` to create the virtual environment
 3. Run cmd `python3 -m pip install -r requirements.txt`
 4. Edit `driver.py`'s "Define info for run section" for desired dataset
 5. Run cmd `./driver`
 6. View results in `../test_data` folder
+
+## How to test
+
+1. Open the `result_checker.py`
+2. Update the `test_file` & `gold_file` variables to which data sets to compare
+3. Run `./result_checker.py`
 
 ## List of Convolution Methods
 

@@ -18,3 +18,5 @@
 5. Run the command for the corresponding convolution test
     - ./build/bin/convolution_test
     - ./build/bin/convolution_nvidia_example
+6. View the results in the `../test_data` directory
+7. Test accuracy of output with `../python_ref/result_checker.py`
