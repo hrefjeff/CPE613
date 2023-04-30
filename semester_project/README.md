@@ -8,4 +8,4 @@
 
 `./test_data_gold` - Gold standard output data that is correct
 
-`./test_data` - Output data that is produced by runs which will be created at runtime
+`./test_data` - Output data created during runtime of convolution runs
