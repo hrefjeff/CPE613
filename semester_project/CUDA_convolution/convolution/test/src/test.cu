@@ -49,7 +49,7 @@ int main() {
     double elapsedTime_ms = timer.elapsedTime_ms();
 
     printf (
-    "\n- Elapsed Time:             %20.16e Ms\n\n",
+    "\n- CUDA convolution time:             %20.16e Ms\n\n",
         elapsedTime_ms / 1.0e3
     );
     
