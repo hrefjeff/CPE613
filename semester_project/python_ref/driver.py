@@ -73,7 +73,8 @@ def main():
             result = convolve_fft_sp(signal, filter)
     end = timeit.default_timer() - start
     
-    print(f'Convolution time is {end:.1f} ms')
+    #print(f'Python convolution time is {end*1000:.1f} seconds')
+    print(f'Python convolution time is {end:.1f} milliseconds')
 
     # Save result to file
     chdir(test_dir)
